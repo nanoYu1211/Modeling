@@ -1,0 +1,384 @@
+library(dplyr)
+library(caret)
+library(lightgbm)
+library(ggplot2)
+library(randomForest)
+
+data <- read.csv("code.Public database data.csv")
+
+X <- data %>% select(-viability) 
+Y <- data$viability  
+
+set.seed(258)
+
+train_index <- createDataPartition(Y, p = 0.8, list = FALSE)
+X_train <- X[train_index, ]
+Y_train <- Y[train_index]
+X_test <- X[-train_index, ]
+Y_test <- Y[-train_index]
+
+
+params <- list(
+  objective = "regression",
+  metric = "rmse",
+  learning_rate = 0.05,
+  max_depth = 10,
+  reg_alpha = 0.1,             
+  reg_lambda = 0.2,              
+  num_leaves = 45,
+  feature_fraction = 0.7,
+  subsample = 0.8,
+  n_estimators = 800
+)
+
+lgb_train <- lgb.Dataset(as.matrix(X_train), label = Y_train)
+lgb_test <- lgb.Dataset(as.matrix(X_test), label = Y_test)
+
+model <- lgb.train(
+  params,
+  lgb_train,
+  valids = list(test = lgb_test),  
+  early_stopping_rounds = 50
+)
+library(pdp)
+pdp_result <- pdp::partial(
+  model, 
+  pred.var = c("Zeta", "size"),  
+  train = as.matrix(X_train),    
+  grid.resolution = 20           
+)
+
+pdp_plot <- ggplot(pdp_result, aes(x = Zeta, y = size, z = yhat)) +
+  geom_contour_filled(aes(fill = after_stat(level))) + 
+  scale_fill_viridis_d(
+    name = "Predicted\nviability",
+    guide = guide_colorsteps(
+      ticks = FALSE, 
+      even.steps = FALSE, 
+      barwidth = unit(5, "mm"),
+      barheight = unit(60, "mm"),
+      frame.colour = "black",
+      show.limits = TRUE
+    )
+  ) + 
+  geom_contour(color = "black", linewidth = 0.2, alpha = 0.5) +
+  labs(
+    x = "Zeta potential",
+    y = "Size",
+    title = "Bivariate Partial Dependence Contour Plot"
+  ) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Arial", face = "bold"),
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+    plot.background = element_rect(fill = "white"),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(face = "bold"),
+    legend.title = element_text(face = "bold")
+  )
+
+
+print(pdp_plot)
+ggsave("Zeta-size_pdp_ice_plot.tiff", plot = pdp_plot, width = 8, height = 6, dpi = 600)
+
+
+pdp_result <- pdp::partial(
+  model, 
+  pred.var = c("Exposure_C", "size"),  
+  train = as.matrix(X_train),   
+  grid.resolution = 20           
+)
+
+pdp_plot <- ggplot(pdp_result, aes(x = Exposure_C, y = size, z = yhat)) +
+  geom_contour_filled(aes(fill = after_stat(level))) +  
+  scale_fill_viridis_d(
+    name = "Predicted\nviability",
+    guide = guide_colorsteps(
+      ticks = FALSE, 
+      even.steps = FALSE, 
+      barwidth = unit(5, "mm"),
+      barheight = unit(38, "mm"),
+      frame.colour = "black",
+      show.limits = TRUE
+    )
+  ) + 
+  geom_contour(color = "black", linewidth = 0.2, alpha = 0.5) +  
+  coord_cartesian(xlim = c(0, 800), ylim = c(0, 100)) +  
+  labs(
+    x = "Exposure_C",
+    y = "size",
+    title = "Bivariate Partial Dependence Contour Plot"
+  ) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Arial", face = "bold"),
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+    plot.background = element_rect(fill = "white"),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(face = "bold"),
+    legend.title = element_text(face = "bold")
+  )
+print(pdp_plot)
+ggsave("Exposure_C-size_pdp_ice_plot.tiff", plot = pdp_plot, width = 8, height = 6, dpi = 600)
+
+
+pdp_result <- pdp::partial(
+  model, 
+  pred.var = c("precursor_C", "Syn_time"),
+  train = as.matrix(X_train),   
+  grid.resolution = 20         
+)
+
+pdp_plot <- ggplot(pdp_result, aes(x = precursor_C, y = Syn_time, z = yhat)) +
+  geom_contour_filled(aes(fill = after_stat(level))) + 
+  scale_fill_viridis_d(
+    name = "Predicted\nviability",
+    guide = guide_colorsteps(
+      ticks = FALSE, 
+      even.steps = FALSE, 
+      barwidth = unit(5, "mm"),
+      barheight = unit(54, "mm"),
+      frame.colour = "black",
+      show.limits = TRUE
+    )
+  ) + 
+  geom_contour(color = "black", linewidth = 0.2, alpha = 0.5) + 
+  coord_cartesian(xlim = c(0, 50), ylim = c(0, 2000)) +  
+  labs(
+    x = "precursor_C",
+    y = "Syn_time",
+    title = "Bivariate Partial Dependence Contour Plot"
+  ) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Arial", face = "bold"),
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+    plot.background = element_rect(fill = "white"),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(face = "bold"),
+    legend.title = element_text(face = "bold")
+  )
+
+print(pdp_plot)
+ggsave("precursor_C_Syn_time_pdp_ice_plot.tiff", plot = pdp_plot, width = 8, height = 6, dpi = 600)
+
+
+pdp_result <- pdp::partial(
+  model, 
+  pred.var = c("precursor_C", "pH"), 
+  train = as.matrix(X_train),   
+  grid.resolution = 20          
+)
+
+pdp_plot <- ggplot(pdp_result, aes(x = precursor_C, y = pH, z = yhat)) +
+  geom_contour_filled(aes(fill = after_stat(level))) + 
+  scale_fill_viridis_d(
+    name = "Predicted\nviability",
+    guide = guide_colorsteps(
+      ticks = FALSE, 
+      even.steps = FALSE, 
+      barwidth = unit(5, "mm"),
+      barheight = unit(60, "mm"),
+      frame.colour = "black",
+      show.limits = TRUE
+    )
+  ) + 
+  geom_contour(color = "black", linewidth = 0.2, alpha = 0.5) +  
+  coord_cartesian(xlim = c(0, 50), ylim = c(2.8, 12.1)) + 
+  labs(
+    x = "precursor_C",
+    y = "pH",
+    title = "Bivariate Partial Dependence Contour Plot"
+  ) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Arial", face = "bold"),
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+    plot.background = element_rect(fill = "white"),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(face = "bold"),
+    legend.title = element_text(face = "bold")
+  )
+
+
+print(pdp_plot)
+ggsave("precursor_C_pH_pdp_ice_plot.tiff", plot = pdp_plot, width = 8, height = 6, dpi = 600)
+
+
+pdp_result <- pdp::partial(
+  model, 
+  pred.var = c("Syn_temperature", "pH"), 
+  train = as.matrix(X_train),     
+  grid.resolution = 20           
+)
+
+pdp_plot <- ggplot(pdp_result, aes(x = Syn_temperature, y = pH, z = yhat)) +
+  geom_contour_filled(aes(fill = after_stat(level))) + 
+  scale_fill_viridis_d(
+    name = "Predicted\nviability",
+    guide = guide_colorsteps(
+      ticks = FALSE, 
+      even.steps = FALSE, 
+      barwidth = unit(5, "mm"),
+      barheight = unit(60, "mm"),
+      frame.colour = "black",
+      show.limits = TRUE
+    )
+  ) + 
+  geom_contour(color = "black", linewidth = 0.2, alpha = 0.5) + 
+  coord_cartesian(xlim = c(-5, 125), ylim = c(3,12)) + 
+  labs(
+    x = "Syn_temperature",
+    y = "pH",
+    title = "Bivariate Partial Dependence Contour Plot"
+  ) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Arial", face = "bold"),
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+    plot.background = element_rect(fill = "white"),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(face = "bold"),
+    legend.title = element_text(face = "bold")
+  )
+
+
+print(pdp_plot)
+ggsave("pH_Syn_temperature_pdp_ice_plot.tiff", plot = pdp_plot, width = 8, height = 6, dpi = 600)
+
+pdp_result <- pdp::partial(
+  model, 
+  pred.var = c("Syn_temperature", "Syn_time"), 
+  train = as.matrix(X_train),   
+  grid.resolution = 20          
+)
+
+pdp_plot <- ggplot(pdp_result, aes(x = Syn_temperature, y = Syn_time, z = yhat)) +
+  geom_contour_filled(aes(fill = after_stat(level))) + 
+  scale_fill_viridis_d(
+    name = "Predicted\nviability",
+    guide = guide_colorsteps(
+      ticks = FALSE, 
+      even.steps = FALSE, 
+      barwidth = unit(5, "mm"),
+      barheight = unit(60, "mm"),
+      frame.colour = "black",
+      show.limits = TRUE
+    )
+  ) + 
+  geom_contour(color = "black", linewidth = 0.2, alpha = 0.5) +  
+  coord_cartesian(xlim = c(-5, 125), ylim = c(0,2000)) + 
+  labs(
+    x = "Syn_temperature",
+    y = "Syn_time",
+    title = "Bivariate Partial Dependence Contour Plot"
+  ) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Arial", face = "bold"),
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+    plot.background = element_rect(fill = "white"),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(face = "bold"),
+    legend.title = element_text(face = "bold")
+  )
+
+print(pdp_plot)
+ggsave("Syn_time_Syn_temperature_pdp_ice_plot.tiff", plot = pdp_plot, width = 8, height = 6, dpi = 600)
+
+
+
+
+
+pdp_result <- pdp::partial(
+  model, 
+  pred.var = c("Syn_time", "pH"),  
+  train = as.matrix(X_train),   
+  grid.resolution = 20          
+)
+
+
+pdp_plot <- ggplot(pdp_result, aes(x = Syn_time, y = pH, z = yhat)) +
+  geom_contour_filled(aes(fill = after_stat(level))) +  
+  scale_fill_viridis_d(
+    name = "Predicted\nviability",
+    guide = guide_colorsteps(
+      ticks = FALSE, 
+      even.steps = FALSE, 
+      barwidth = unit(5, "mm"),
+      barheight = unit(60, "mm"),
+      frame.colour = "black",
+      show.limits = TRUE
+    )
+  ) + 
+  geom_contour(color = "black", linewidth = 0.2, alpha = 0.5) +  
+  coord_cartesian(xlim = c(0, 1500), ylim = c(3,12)) + 
+  labs(
+    x = "Syn_time",
+    y = "pH",
+    title = "Bivariate Partial Dependence Contour Plot"
+  ) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Arial", face = "bold"),
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+    plot.background = element_rect(fill = "white"),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(face = "bold"),
+    legend.title = element_text(face = "bold")
+  )
+
+
+print(pdp_plot)
+ggsave("Syn_time_pH_pdp_ice_plot.tiff", plot = pdp_plot, width = 8, height = 6, dpi = 600)
+
+
+
+pdp_result <- pdp::partial(
+  model, 
+  pred.var = c("Exposure_time", "size"),  
+  train = as.matrix(X_train),    
+  grid.resolution = 20            
+)
+
+pdp_plot <- ggplot(pdp_result, aes(x = Exposure_time, y = size, z = yhat)) +
+  geom_contour_filled(aes(fill = after_stat(level))) +  
+  scale_fill_viridis_d(
+    name = "Predicted\nviability",
+    guide = guide_colorsteps(
+      ticks = FALSE, 
+      even.steps = FALSE, 
+      barwidth = unit(5, "mm"),
+      barheight = unit(60, "mm"),
+      frame.colour = "black",
+      show.limits = TRUE
+    )
+  ) + 
+  geom_contour(color = "black", linewidth = 0.2, alpha = 0.5) +
+  coord_cartesian(xlim = c(0, 120), ylim = c(0,100)) +
+  labs(
+    x = "Exposure_time",
+    y = "size",
+    title = "Bivariate Partial Dependence Contour Plot"
+  ) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Arial", face = "bold"),
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+    plot.background = element_rect(fill = "white"),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(face = "bold"),
+    legend.title = element_text(face = "bold")
+  )
+
+print(pdp_plot)
+ggsave("Exposure_time_size_pdp_ice_plot.tiff", plot = pdp_plot, width = 8, height = 6, dpi = 600)
+
