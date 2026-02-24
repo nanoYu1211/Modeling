@@ -1,0 +1,119 @@
+library(dplyr)
+
+data <- read.csv("Public.database.data.csv")
+
+sapply(data, class)
+
+data$material <- as.factor(data$material)  
+data$shape <- as.factor(data$shape)  
+data$SynCate <- as.factor(data$SynCate)  
+data$reductant <- as.factor(data$reductant) 
+data$extractant <- as.factor(data$extractant) 
+data$coat <- as.factor(data$coat)
+data$cell_type <- as.factor(data$cell_type)
+data$cell_line <- as.factor(data$cell_line)  
+data$Via_test <- as.factor(data$Via_test)
+data$Syn_temperature <- as.factor(data$Syn_temperature)
+
+library(missForest)  
+set.seed(1234)
+data_missForest_imputed <- missForest(data)$ximp   
+
+write.csv(data_missForest_imputed, "all.Public database data.csv", row.names = FALSE)
+
+data <- read.csv("all.Public database data.csv")
+
+data <- data %>%
+  mutate(material = recode(material,
+                           "Au" = 1,
+                           "Au/Ag" = 2,
+                           "Ag" = 3))
+
+data <- data %>%
+  mutate(shape = recode(shape,
+                        "sphere" = 0, 
+                        "rod" = 1,
+                        "branch" = 2,
+                        "polyhedron" = 3,
+                        "star" = 4,
+                        "flower" = 5,
+                        "mixture" = 6))
+
+data <- data %>%
+  mutate(SynCate = recode(SynCate,
+                          "chemical" = 1,
+                          "biological" = 2,
+                          "physics" = 3))
+
+data <- data %>%
+  mutate(coat = recode(coat,
+                       "0" = 1, 
+                       "carboxyl group" = 2,
+                       "flavonoids" = 3,
+                       "tannic acid" = 4,
+                       "cationic surfactant" = 5,
+                       "polysaccharide" = 6,
+                       "PEG" = 7,
+                       "protein" = 8,
+                       "phytochemicals" = 9,
+                       "polyphenol" = 10))
+
+data <- data %>%
+  mutate(reductant = recode(reductant,
+                            "Purchased" = 0, 
+                            "Deposition and Precipitation" = 1,
+                            "sodium borohydride" = 2,
+                            "sodium citrate" = 3,
+                            "hydroxylamine" = 4,
+                            "ascorbic acid" = 5,
+                            "HEPES" = 6,
+                            "flavonoids" = 7,
+                            "polysaccharide" = 8,
+                            "polyvinylpyrrolidone" = 9,
+                            "PEG" = 10,
+                            "surfactant"= 11,
+                            "lysozyme protein" = 12,
+                            "extract" = 13,
+                            "high_voltage" = 14 ))
+
+data <- data %>%
+  
+  mutate(extractant = recode(extractant,
+                             "0" = 1, 
+                             "water" = 2,
+                             "ethanol?" = 3,
+                             "ethanol" = 3,
+                             "glycol" = 4,
+                             "water-ethanol" = 5,
+                             "water-ethanol-methanol" = 6 ))
+
+data <- data %>%
+  
+  mutate(cell_type = recode(cell_type,
+                           "Immortalized" = 0, 
+                           "primary" = 1))
+
+data <- data %>%
+mutate(cell_line = recode(cell_line,
+                            "hSSCs" = 1, 
+                            "NHEK" = 2,
+                            "HFF" = 3,
+                            "HSF" = 4,
+                            "HaCaT" = 5,
+                            "HDF" = 6,
+                            "NCTC" = 7,
+                            "KMST" = 8))
+
+data <- data %>%
+mutate(Via_test = recode(Via_test,
+                           "JC-1" = 1, 
+                           "Alamar Blue" = 2,
+                           "LDH" = 3,
+                           "SRB" = 4,
+                           "MTS" = 5,
+                           "LIVE/DEAD" = 6,
+                           "MTT" = 7,
+                           "NRU" = 8,
+                           "XTT" = 9))
+
+write.csv(data, "code.Public database data.csv", row.names = FALSE)
