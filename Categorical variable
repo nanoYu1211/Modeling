@@ -1,0 +1,677 @@
+library(dplyr)
+library(caret)
+library(lightgbm)
+library(ggplot2)
+library(randomForest)
+library(ggbeeswarm)
+library(viridis)
+library(readr)
+
+data <- read.csv("code.Public database data.csv")
+
+X <- data %>% select(-viability)
+Y <- data$viability
+
+set.seed(258)
+
+train_index <- createDataPartition(Y, p = 0.8, list = FALSE)
+X_train <- X[train_index, ]
+Y_train <- Y[train_index]
+X_test <- X[-train_index, ]
+Y_test <- Y[-train_index]
+
+params <- list(
+  objective = "regression",
+  metric = "rmse",
+  learning_rate = 0.05,
+  max_depth = 10,
+  reg_alpha = 0.1,
+  reg_lambda = 0.2,
+  num_leaves = 45,
+  feature_fraction = 0.7,
+  subsample = 0.8,
+  n_estimators = 800
+)
+
+calculate_metrics <- function(actual, predicted) {
+  r2 <- 1 - (sum((actual - predicted)^2) / sum((actual - mean(actual))^2))
+  rmse <- sqrt(mean((actual - predicted)^2))
+  mae <- mean(abs(actual - predicted))
+  return(list(R2 = r2, RMSE = rmse, MAE = mae))
+}
+
+set.seed(258)
+folds <- createFolds(Y_train, k = 5)
+cv_results <- data.frame(
+  Fold = integer(),
+  R2 = numeric(),
+  RMSE = numeric(),
+  MAE = numeric()
+)
+
+for (i in 1:5) {
+  val_index <- folds[[i]]
+  X_train_fold <- X_train[-val_index, ]
+  Y_train_fold <- Y_train[-val_index]
+  X_val_fold <- X_train[val_index, ]
+  Y_val_fold <- Y_train[val_index]
+  
+  lgb_train_fold <- lgb.Dataset(as.matrix(X_train_fold), label = Y_train_fold, free_raw_data = FALSE)
+  lgb_val_fold <- lgb.Dataset(as.matrix(X_val_fold), label = Y_val_fold, free_raw_data = FALSE)
+  
+  model_fold <- lgb.train(
+    params,
+    lgb_train_fold,
+    valids = list(valid = lgb_val_fold),
+    early_stopping_rounds = 50
+  )
+  
+  val_predictions <- predict(model_fold, as.matrix(X_val_fold))
+  metrics <- calculate_metrics(Y_val_fold, val_predictions)
+  
+  cv_results <- rbind(cv_results, data.frame(
+    Fold = i,
+    R2 = metrics$R2,
+    RMSE = metrics$RMSE,
+    MAE = metrics$MAE
+  ))
+}
+
+print(cv_results)
+
+cv_avg_metrics <- cv_results %>%
+  summarise(
+    Avg_R2 = mean(R2),
+    Avg_RMSE = mean(RMSE),
+    Avg_MAE = mean(MAE)
+  )
+
+cat("Cross-Validation Average R2-score:", cv_avg_metrics$Avg_R2, "\n")
+cat("Cross-Validation Average RMSE:", cv_avg_metrics$Avg_RMSE, "\n")
+cat("Cross-Validation Average MAE:", cv_avg_metrics$Avg_MAE, "\n")
+
+lgb_train_full <- lgb.Dataset(as.matrix(X_train), label = Y_train, free_raw_data = FALSE)
+final_model <- lgb.train(params, lgb_train_full)
+
+train_predictions <- predict(final_model, as.matrix(X_train))
+test_predictions <- predict(final_model, as.matrix(X_test))
+
+train_metrics <- calculate_metrics(Y_train, train_predictions)
+test_metrics <- calculate_metrics(Y_test, test_predictions)
+
+cat("Train R2-score:", train_metrics$R2, "\n")
+cat("Train RMSE:", train_metrics$RMSE, "\n")
+cat("Train MAE:", train_metrics$MAE, "\n")
+cat("Test R2-score:", test_metrics$R2, "\n")
+cat("Test RMSE:", test_metrics$RMSE, "\n")
+cat("Test MAE:", test_metrics$MAE, "\n")
+
+if (!require("SHAPforxgboost")) install.packages("SHAPforxgboost")
+library(SHAPforxgboost)
+
+X_all <- rbind(X_train, X_test)
+X_matrix <- as.matrix(X_all)
+storage.mode(X_matrix) <- "double"
+
+shap_matrix <- predict(final_model, X_matrix, type = "contrib")
+baseline <- shap_matrix[, ncol(shap_matrix)]
+shap_values <- shap_matrix[, -ncol(shap_matrix)]
+
+material_values <- data$material
+material_factor <- as.factor(material_values)
+material_levels <- levels(material_factor)
+
+material_index <- which(colnames(X_all) == "material")
+if (length(material_index) > 0) {
+  material_shap <- shap_values[, material_index]
+  
+  material_shap_df <- data.frame(
+    Material = material_factor,
+    Material_SHAP = material_shap,
+    Viability = Y,
+    RowIndex = 1:length(material_factor)
+  )
+  
+  p_combined <- ggplot(material_shap_df, aes(x = Material, y = Material_SHAP, fill = Material)) +
+    geom_boxplot(alpha = 0.6, outlier.shape = NA) +
+    geom_quasirandom(
+      size = 1.5, 
+      alpha = 0.5, 
+      width = 0.2,
+      color = "black"
+    ) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "red", linewidth = 0.8) +
+    scale_fill_viridis(discrete = TRUE, option = "D") +
+    labs(
+      title = "SHAP Contribution Distribution by Material",
+      subtitle = "SHAP values represent material contribution to viability prediction",
+      x = "Material",
+      y = "SHAP Value",
+      caption = "Positive SHAP: increases prediction | Negative SHAP: decreases prediction"
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(
+      plot.title = element_text(face = "bold", size = 14, hjust = 0.5),
+      plot.subtitle = element_text(hjust = 0.5, color = "grey40"),
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      legend.position = "none",
+      panel.grid.major.x = element_blank()
+    )
+  
+  print(p_combined)
+  
+  ggsave("Material_SHAP_Boxplot_Beeswarm_Combined.tiff", 
+         p_combined, 
+         width = 3.3, 
+         height = 6, 
+         dpi = 600)
+  
+  save_path <- getwd()
+  clean_filename <- function(name) {
+    gsub("[^a-zA-Z0-9_.-]", "_", name)
+  }
+  data_filename <- clean_filename("Material_SHAP_Boxplot_Beeswarm_Data.csv")
+  
+  export_data <- material_shap_df %>%
+    mutate(across(everything(), ~ifelse(is.na(.), "NA", .)))
+  
+  write_csv(
+    x = export_data,
+    file = file.path(save_path, data_filename),
+    na = "NA"
+  )
+  
+  cat("\n🎉 Material SHAP distribution data (boxplot + beeswarm) export completed!\n")
+  cat("📁 File save path:", save_path, "\n")
+  cat("📄 File name:", data_filename, "\n")
+  
+  cat("\nMaterial SHAP analysis summary:\n")
+  print(table(material_factor))
+  
+  summary_stats <- material_shap_df %>%
+    group_by(Material) %>%
+    summarise(
+      Sample_count = n(),
+      Mean_SHAP = mean(Material_SHAP),
+      SD = sd(Material_SHAP)
+    )
+  print(summary_stats)
+  
+} else {
+  cat("Error: 'material' variable not found in dataset!\n")
+  cat("Available variables:", colnames(X_all), "\n")
+}
+
+
+X_all <- rbind(X_train, X_test)
+X_matrix <- as.matrix(X_all)
+storage.mode(X_matrix) <- "double"
+
+shap_matrix <- predict(final_model, X_matrix, type = "contrib")
+baseline <- shap_matrix[, ncol(shap_matrix)]
+shap_values <- shap_matrix[, -ncol(shap_matrix)]
+
+shape_values <- data$shape
+shape_factor <- as.factor(shape_values)
+shape_levels <- levels(shape_factor)
+
+shape_index <- which(colnames(X_all) == "shape")
+if (length(shape_index) > 0) {
+  shape_shap <- shap_values[, shape_index]
+  
+  shape_shap_df <- data.frame(
+    Shape = shape_factor,
+    Shape_SHAP = shape_shap,
+    Viability = Y,
+    RowIndex = 1:length(shape_factor)
+  )
+  
+  p_combined <- ggplot(shape_shap_df, aes(x = Shape, y = Shape_SHAP, fill = Shape)) +
+    geom_boxplot(alpha = 0.6, outlier.shape = NA) +
+    geom_quasirandom(
+      size = 1.5, 
+      alpha = 0.5, 
+      width = 0.2,
+      color = "black"
+    ) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "red", linewidth = 0.8) +
+    scale_fill_viridis(discrete = TRUE, option = "D") +
+    labs(
+      title = "SHAP Contribution Distribution by Shape",
+      subtitle = "SHAP values represent shape contribution to viability prediction",
+      x = "Shape",
+      y = "SHAP Value",
+      caption = "Positive SHAP: increases prediction | Negative SHAP: decreases prediction"
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(
+      plot.title = element_text(face = "bold", size = 14, hjust = 0.5),
+      plot.subtitle = element_text(hjust = 0.5, color = "grey40"),
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      legend.position = "none",
+      panel.grid.major.x = element_blank()
+    )
+  
+  print(p_combined)
+  
+  ggsave("Shape_SHAP_Boxplot_Beeswarm_Combined.tiff", 
+         p_combined, 
+         width = 5.5, 
+         height = 6, 
+         dpi = 600)
+  
+  save_path <- getwd()
+  clean_filename <- function(name) {
+    gsub("[^a-zA-Z0-9_.-]", "_", name)
+  }
+  data_filename <- clean_filename("Shape_SHAP_Boxplot_Beeswarm_Data.csv")
+  
+  export_data <- shape_shap_df %>%
+    mutate(across(everything(), ~ifelse(is.na(.), "NA", .)))
+  
+  write_csv(
+    x = export_data,
+    file = file.path(save_path, data_filename),
+    na = "NA"
+  )
+  
+  cat("\n🎉 Shape SHAP distribution data (boxplot + beeswarm) export completed!\n")
+  cat("📁 File save path:", save_path, "\n")
+  cat("📄 File name:", data_filename, "\n")
+  
+  cat("\nShape SHAP analysis summary:\n")
+  print(table(shape_factor))
+  
+  summary_stats <- shape_shap_df %>%
+    group_by(Shape) %>%
+    summarise(
+      Sample_count = n(),
+      Mean_SHAP = mean(Shape_SHAP),
+      SD = sd(Shape_SHAP)
+    )
+  print(summary_stats)
+  
+} else {
+  cat("Error: 'shape' variable not found in dataset!\n")
+  cat("Available variables:", colnames(X_all), "\n")
+}
+
+
+
+X_all <- rbind(X_train, X_test)
+X_matrix <- as.matrix(X_all)
+storage.mode(X_matrix) <- "double"
+
+shap_matrix <- predict(final_model, X_matrix, type = "contrib")
+baseline <- shap_matrix[, ncol(shap_matrix)]
+shap_values <- shap_matrix[, -ncol(shap_matrix)]
+
+cell_type_values <- data$cell_type
+cell_type_factor <- as.factor(cell_type_values)
+cell_type_levels <- levels(cell_type_factor)
+
+cell_type_index <- which(colnames(X_all) == "cell_type")
+if (length(cell_type_index) > 0) {
+  cell_type_shap <- shap_values[, cell_type_index]
+  
+  cell_type_shap_df <- data.frame(
+    Cell_type = cell_type_factor,
+    Cell_type_SHAP = cell_type_shap,
+    Viability = Y,
+    RowIndex = 1:length(cell_type_factor)
+  )
+  
+  p_combined <- ggplot(cell_type_shap_df, aes(x = Cell_type, y = Cell_type_SHAP, fill = Cell_type)) +
+    geom_boxplot(alpha = 0.6, outlier.shape = NA) +
+    geom_quasirandom(
+      size = 1.5, 
+      alpha = 0.5, 
+      width = 0.2,
+      color = "black"
+    ) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "red", linewidth = 0.8) +
+    scale_fill_viridis(discrete = TRUE, option = "D") +
+    labs(
+      title = "SHAP Contribution Distribution by Cell Type",
+      subtitle = "SHAP values represent cell type contribution to viability prediction",
+      x = "Cell Type",
+      y = "SHAP Value",
+      caption = "Positive SHAP: increases prediction | Negative SHAP: decreases prediction"
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(
+      plot.title = element_text(face = "bold", size = 14, hjust = 0.5),
+      plot.subtitle = element_text(hjust = 0.5, color = "grey40"),
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      legend.position = "none",
+      panel.grid.major.x = element_blank()
+    )
+  
+  print(p_combined)
+  
+  ggsave("Cell_type_SHAP_Boxplot_Beeswarm_Combined.tiff", 
+         p_combined, 
+         width = 2, 
+         height = 6, 
+         dpi = 600)
+  
+  save_path <- getwd()
+  clean_filename <- function(name) {
+    gsub("[^a-zA-Z0-9_.-]", "_", name)
+  }
+  data_filename <- clean_filename("Cell_type_SHAP_Boxplot_Beeswarm_Data.csv")
+  
+  export_data <- cell_type_shap_df %>%
+    mutate(across(everything(), ~ifelse(is.na(.), "NA", .)))
+  
+  write_csv(
+    x = export_data,
+    file = file.path(save_path, data_filename),
+    na = "NA"
+  )
+  
+  cat("\n🎉 Cell type SHAP distribution data (boxplot + beeswarm) export completed!\n")
+  cat("📁 File save path:", save_path, "\n")
+  cat("📄 File name:", data_filename, "\n")
+  
+  cat("\nCell type SHAP analysis summary:\n")
+  print(table(cell_type_factor))
+  
+  summary_stats <- cell_type_shap_df %>%
+    group_by(Cell_type) %>%
+    summarise(
+      Sample_count = n(),
+      Mean_SHAP = mean(Cell_type_SHAP),
+      SD = sd(Cell_type_SHAP)
+    )
+  print(summary_stats)
+  
+} else {
+  cat("Error: 'cell_type' variable not found in dataset!\n")
+  cat("Available variables:", colnames(X_all), "\n")
+}
+
+
+X_all <- rbind(X_train, X_test)
+X_matrix <- as.matrix(X_all)
+storage.mode(X_matrix) <- "double"
+
+shap_matrix <- predict(final_model, X_matrix, type = "contrib")
+baseline <- shap_matrix[, ncol(shap_matrix)]
+shap_values <- shap_matrix[, -ncol(shap_matrix)]
+
+reductant_values <- data$reductant
+reductant_factor <- as.factor(reductant_values)
+reductant_levels <- levels(reductant_factor)
+
+reductant_index <- which(colnames(X_all) == "reductant")
+if (length(reductant_index) > 0) {
+  reductant_shap <- shap_values[, reductant_index]
+  
+  reductant_shap_df <- data.frame(
+    Reductant = reductant_factor,
+    Reductant_SHAP = reductant_shap,
+    Viability = Y,
+    RowIndex = 1:length(reductant_factor)
+  )
+  
+  p_combined <- ggplot(reductant_shap_df, aes(x = Reductant, y = Reductant_SHAP, fill = Reductant)) +
+    geom_boxplot(alpha = 0.6, outlier.shape = NA) +
+    geom_quasirandom(
+      size = 1.5, 
+      alpha = 0.5, 
+      width = 0.2,
+      color = "black"
+    ) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "red", linewidth = 0.8) +
+    scale_fill_viridis(discrete = TRUE, option = "D") +
+    labs(
+      title = "SHAP Contribution Distribution by Reductant",
+      subtitle = "SHAP values represent reductant contribution to viability prediction",
+      x = "Reductant",
+      y = "SHAP Value",
+      caption = "Positive SHAP: increases prediction | Negative SHAP: decreases prediction"
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(
+      plot.title = element_text(face = "bold", size = 14, hjust = 0.5),
+      plot.subtitle = element_text(hjust = 0.5, color = "grey40"),
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      legend.position = "none",
+      panel.grid.major.x = element_blank()
+    )
+  
+  print(p_combined)
+  
+  ggsave("Reductant_SHAP_Boxplot_Beeswarm_Combined.tiff", 
+         p_combined, 
+         width = 12, 
+         height = 6, 
+         dpi = 600)
+  
+  save_path <- getwd()
+  clean_filename <- function(name) {
+    gsub("[^a-zA-Z0-9_.-]", "_", name)
+  }
+  data_filename <- clean_filename("Reductant_SHAP_Boxplot_Beeswarm_Data.csv")
+  
+  export_data <- reductant_shap_df %>%
+    mutate(across(everything(), ~ifelse(is.na(.), "NA", .)))
+  
+  write_csv(
+    x = export_data,
+    file = file.path(save_path, data_filename),
+    na = "NA"
+  )
+  
+  cat("\n🎉 Reductant SHAP distribution data (boxplot + beeswarm) export completed!\n")
+  cat("📁 File save path:", save_path, "\n")
+  cat("📄 File name:", data_filename, "\n")
+  
+  cat("\nReductant SHAP analysis summary:\n")
+  print(table(reductant_factor))
+  
+  summary_stats <- reductant_shap_df %>%
+    group_by(Reductant) %>%
+    summarise(
+      Sample_count = n(),
+      Mean_SHAP = mean(Reductant_SHAP),
+      SD = sd(Reductant_SHAP)
+    )
+  print(summary_stats)
+  
+} else {
+  cat("Error: 'reductant' variable not found in dataset!\n")
+  cat("Available variables:", colnames(X_all), "\n")
+}
+
+
+
+
+X_all <- rbind(X_train, X_test)
+X_matrix <- as.matrix(X_all)
+storage.mode(X_matrix) <- "double"
+
+shap_matrix <- predict(final_model, X_matrix, type = "contrib")
+baseline <- shap_matrix[, ncol(shap_matrix)]
+shap_values <- shap_matrix[, -ncol(shap_matrix)]
+
+cell_line_values <- data$cell_line
+cell_line_factor <- as.factor(cell_line_values)
+cell_line_levels <- levels(cell_line_factor)
+
+cell_line_index <- which(colnames(X_all) == "cell_line")
+if (length(cell_line_index) > 0) {
+  cell_line_shap <- shap_values[, cell_line_index]
+  
+  cell_line_shap_df <- data.frame(
+    Cell_line = cell_line_factor,
+    Cell_line_SHAP = cell_line_shap,
+    Viability = Y,
+    RowIndex = 1:length(cell_line_factor)
+  )
+  
+  p_combined <- ggplot(cell_line_shap_df, aes(x = Cell_line, y = Cell_line_SHAP, fill = Cell_line)) +
+    geom_boxplot(alpha = 0.6, outlier.shape = NA) +
+    geom_quasirandom(
+      size = 1.5, 
+      alpha = 0.5, 
+      width = 0.2,
+      color = "black"
+    ) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "red", linewidth = 0.8) +
+    scale_fill_viridis(discrete = TRUE, option = "D") +
+    labs(
+      title = "SHAP Contribution Distribution by Cell Line",
+      subtitle = "SHAP values represent cell line contribution to viability prediction",
+      x = "Cell Line",
+      y = "SHAP Value",
+      caption = "Positive SHAP: increases prediction | Negative SHAP: decreases prediction"
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(
+      plot.title = element_text(face = "bold", size = 14, hjust = 0.5),
+      plot.subtitle = element_text(hjust = 0.5, color = "grey40"),
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      legend.position = "none",
+      panel.grid.major.x = element_blank()
+    )
+  
+  print(p_combined)
+  
+  ggsave("Cell_line_SHAP_Boxplot_Beeswarm_Combined.tiff", 
+         p_combined, 
+         width = 6, 
+         height = 6, 
+         dpi = 600)
+  
+  save_path <- getwd()
+  clean_filename <- function(name) {
+    gsub("[^a-zA-Z0-9_.-]", "_", name)
+  }
+  data_filename <- clean_filename("Cell_line_SHAP_Boxplot_Beeswarm_Data.csv")
+  
+  export_data <- cell_line_shap_df %>%
+    mutate(across(everything(), ~ifelse(is.na(.), "NA", .)))
+  
+  write_csv(
+    x = export_data,
+    file = file.path(save_path, data_filename),
+    na = "NA"
+  )
+  
+  cat("\n🎉 Cell line SHAP distribution data (boxplot + beeswarm) export completed!\n")
+  cat("📁 File save path:", save_path, "\n")
+  cat("📄 File name:", data_filename, "\n")
+  
+  cat("\nCell line SHAP analysis summary:\n")
+  print(table(cell_line_factor))
+  
+  summary_stats <- cell_line_shap_df %>%
+    group_by(Cell_line) %>%
+    summarise(
+      Sample_count = n(),
+      Mean_SHAP = mean(Cell_line_SHAP),
+      SD = sd(Cell_line_SHAP)
+    )
+  print(summary_stats)
+  
+} else {
+  cat("Error: 'cell_line' variable not found in dataset!\n")
+  cat("Available variables:", colnames(X_all), "\n")
+}
+
+
+
+X_all <- rbind(X_train, X_test)
+X_matrix <- as.matrix(X_all)
+storage.mode(X_matrix) <- "double"
+
+shap_matrix <- predict(final_model, X_matrix, type = "contrib")
+baseline <- shap_matrix[, ncol(shap_matrix)]
+shap_values <- shap_matrix[, -ncol(shap_matrix)]
+
+Via_test_values <- data$Via_test
+Via_test_factor <- as.factor(Via_test_values)
+Via_test_levels <- levels(Via_test_factor)
+
+Via_test_index <- which(colnames(X_all) == "Via_test")
+if (length(Via_test_index) > 0) {
+  Via_test_shap <- shap_values[, Via_test_index]
+  
+  Via_test_shap_df <- data.frame(
+    Via_test = Via_test_factor,
+    Via_test_SHAP = Via_test_shap,
+    Viability = Y,
+    RowIndex = 1:length(Via_test_factor)
+  )
+  
+  p_combined <- ggplot(Via_test_shap_df, aes(x = Via_test, y = Via_test_SHAP, fill = Via_test)) +
+    geom_boxplot(alpha = 0.6, outlier.shape = NA) +
+    geom_quasirandom(
+      size = 1.5, 
+      alpha = 0.5, 
+      width = 0.2,
+      color = "black"
+    ) +
+    geom_hline(yintercept = 0, linetype = "dashed", color = "red", linewidth = 0.8) +
+    scale_fill_viridis(discrete = TRUE, option = "D") +
+    labs(
+      title = "SHAP Contribution Distribution by Via_test",
+      subtitle = "SHAP values represent Via_test contribution to viability prediction",
+      x = "Via_test",
+      y = "SHAP Value",
+      caption = "Positive SHAP: increases prediction | Negative SHAP: decreases prediction"
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(
+      plot.title = element_text(face = "bold", size = 14, hjust = 0.5),
+      plot.subtitle = element_text(hjust = 0.5, color = "grey40"),
+      axis.text.x = element_text(angle = 45, hjust = 1),
+      legend.position = "none",
+      panel.grid.major.x = element_blank()
+    )
+  
+  print(p_combined)
+  
+  ggsave("Via_test_SHAP_Boxplot_Beeswarm_Combined.tiff", 
+         p_combined, 
+         width = 6, 
+         height = 6, 
+         dpi = 600)
+  
+  save_path <- getwd()
+  clean_filename <- function(name) {
+    gsub("[^a-zA-Z0-9_.-]", "_", name)
+  }
+  data_filename <- clean_filename("Via_test_SHAP_Boxplot_Beeswarm_Data.csv")
+  
+  export_data <- Via_test_shap_df %>%
+    mutate(across(everything(), ~ifelse(is.na(.), "NA", .)))
+  
+  write_csv(
+    x = export_data,
+    file = file.path(save_path, data_filename),
+    na = "NA"
+  )
+  
+  cat("\n🎉 Via_test SHAP distribution data (boxplot + beeswarm) export completed!\n")
+  cat("📁 File save path:", save_path, "\n")
+  cat("📄 File name:", data_filename, "\n")
+  
+  cat("\nVia_test SHAP analysis summary:\n")
+  print(table(Via_test_factor))
+  
+  summary_stats <- Via_test_shap_df %>%
+    group_by(Via_test) %>%
+    summarise(
+      Sample_count = n(),
+      Mean_SHAP = mean(Via_test_SHAP),
+      SD = sd(Via_test_SHAP)
+    )
+  print(summary_stats)
+  
+} else {
+  cat("Error: 'Via_test' variable not found in dataset!\n")
+  cat("Available variables:", colnames(X_all), "\n")
+}
