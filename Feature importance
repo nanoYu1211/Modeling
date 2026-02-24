@@ -1,0 +1,255 @@
+library(dplyr)
+library(caret)
+library(lightgbm)
+library(ggplot2)
+library(randomForest)
+
+data <- read.csv("code.Public database data.csv")
+
+X <- data %>% select(-viability) 
+Y <- data$viability  
+
+set.seed(258)
+
+train_index <- createDataPartition(Y, p = 0.8, list = FALSE)
+X_train <- X[train_index, ]
+Y_train <- Y[train_index]
+X_test <- X[-train_index, ]
+Y_test <- Y[-train_index]
+
+params <- list(
+  objective = "regression",
+  metric = "rmse",
+  learning_rate = 0.05,
+  max_depth = 10,
+  reg_alpha = 0.1,               
+  reg_lambda = 0.2,              
+  num_leaves = 45,
+  feature_fraction = 0.7,
+  subsample = 0.8,
+  n_estimators = 800
+)
+
+calculate_metrics <- function(actual, predicted) {
+  r2 <- 1 - (sum((actual - predicted)^2) / sum((actual - mean(actual))^2))
+  rmse <- sqrt(mean((actual - predicted)^2))
+  mae <- mean(abs(actual - predicted))
+  return(list(R2 = r2, RMSE = rmse, MAE = mae))
+}
+
+set.seed(258)
+folds <- createFolds(Y_train, k = 5)  
+
+cv_results <- data.frame(
+  Fold = integer(),
+  R2 = numeric(),
+  RMSE = numeric(),
+  MAE = numeric()
+)
+
+for (i in 1:5) {
+  val_index <- folds[[i]]
+  X_train_fold <- X_train[-val_index, ]
+  Y_train_fold <- Y_train[-val_index]
+  X_val_fold <- X_train[val_index, ]
+  Y_val_fold <- Y_train[val_index]
+  
+  lgb_train_fold <- lgb.Dataset(as.matrix(X_train_fold), label = Y_train_fold, free_raw_data = FALSE)
+  lgb_val_fold <- lgb.Dataset(as.matrix(X_val_fold), label = Y_val_fold, free_raw_data = FALSE)
+  
+  model_fold <- lgb.train(
+    params,
+    lgb_train_fold,
+    valids = list(valid = lgb_val_fold),
+    early_stopping_rounds = 50 
+  )
+  
+  val_predictions <- predict(model_fold, as.matrix(X_val_fold))
+  
+  metrics <- calculate_metrics(Y_val_fold, val_predictions)
+  
+  cv_results <- rbind(cv_results, data.frame(
+    Fold = i,
+    R2 = metrics$R2,
+    RMSE = metrics$RMSE,
+    MAE = metrics$MAE
+  ))
+}
+
+print(cv_results)
+
+cv_avg_metrics <- cv_results %>%
+  summarise(
+    Avg_R2 = mean(R2),
+    Avg_RMSE = mean(RMSE),
+    Avg_MAE = mean(MAE)
+  )
+
+cat("Cross-Validation Average R2-score:", cv_avg_metrics$Avg_R2, "\n")
+cat("Cross-Validation Average RMSE:", cv_avg_metrics$Avg_RMSE, "\n")
+cat("Cross-Validation Average MAE:", cv_avg_metrics$Avg_MAE, "\n")
+
+lgb_train_full <- lgb.Dataset(as.matrix(X_train), label = Y_train, free_raw_data = FALSE)
+final_model <- lgb.train(
+  params,
+  lgb_train_full
+)
+
+train_predictions <- predict(final_model, as.matrix(X_train))
+test_predictions <- predict(final_model, as.matrix(X_test))
+
+train_metrics <- calculate_metrics(Y_train, train_predictions)
+test_metrics <- calculate_metrics(Y_test, test_predictions)
+
+cat("Train R2-score:", train_metrics$R2, "\n")
+cat("Train RMSE:", train_metrics$RMSE, "\n")
+cat("Train MAE:", train_metrics$MAE, "\n")
+cat("Test R2-score:", test_metrics$R2, "\n")
+cat("Test RMSE:", test_metrics$RMSE, "\n")
+cat("Test MAE:", test_metrics$MAE, "\n")
+
+
+if (!require("SHAPforxgboost")) 
+  if (!require("ggbeeswarm")) 
+    library(SHAPforxgboost)
+library(ggbeeswarm)
+
+X_all <- rbind(X_train, X_test)
+X_matrix <- as.matrix(X_all)
+storage.mode(X_matrix) <- "double"
+
+shap_matrix <- predict(final_model, X_matrix, type = "contrib")
+
+baseline <- shap_matrix[, ncol(shap_matrix)]
+shap_values <- shap_matrix[, -ncol(shap_matrix)]
+
+shap_long <- data.frame(
+  Feature = rep(colnames(X_all), each = nrow(X_all)),
+  SHAP = as.vector(shap_values),
+  Value = as.vector(X_matrix),
+  DataType = rep(c("Train", "Test"), 
+                 times = c(nrow(X_train), nrow(X_test)))  
+)
+
+shap_importance <- shap_long %>%
+  group_by(Feature) %>%
+  summarise(Importance = mean(abs(SHAP))) %>%
+  arrange(desc(Importance))
+
+cat("\nSHAP feature importance ranking (descending):\n")
+print(shap_importance)
+
+shap_long <- shap_long %>%
+  filter(abs(SHAP) <= 80)
+
+cat("\nSHAP value filtering results:\n")
+cat("Original data points:", nrow(shap_long) / length(unique(shap_long$Feature)), "per feature\n")
+cat("Filtered data points:", nrow(shap_long), "total\n")
+cat("SHAP value range:", min(shap_long$SHAP), "to", max(shap_long$SHAP), "\n")
+
+color_high <- "#D62728" 
+color_low <- "blue"  
+
+
+shap_top <- shap_long %>% 
+  filter(Feature %in% top_features) %>%
+  mutate(Feature = factor(Feature, levels = rev(top_features)))  
+
+shap_top <- shap_top %>%
+  group_by(Feature) %>%
+  mutate(Value_scaled = scales::rescale(Value, to = c(0, 1))) %>%  
+  ungroup()
+
+shap_beeswarm_plot <- ggplot(shap_top, aes(x = SHAP, y = Feature, color = Value_scaled)) +
+  
+  geom_vline(xintercept = 0, color = "black", linetype = "solid", linewidth = 0.8, alpha = 0.8) +
+  
+  geom_quasirandom(
+    size = 1.6,         
+    alpha = 0.8,         
+    groupOnX = FALSE,
+    varwidth = TRUE,
+    width = 0.3           
+  ) +
+  
+  scale_color_gradientn(
+    name = "Feature Value",
+    colors = c(color_low, color_high), 
+    values = c(0, 1),                   
+    breaks = c(0, 1),
+    labels = c("Low", "High")
+  ) +
+  
+  scale_x_continuous(
+    breaks = seq(-100, 100, by = 20), 
+    limits = c(-max(abs(shap_top$SHAP)) * 1.1, max(abs(shap_top$SHAP)) * 1.1)
+  ) +
+  
+  labs(
+    title = "SHAP Feature Importance Beeswarm Plot",
+    subtitle = "Color indicates feature value: Red=High, Blue=Low",
+    x = "SHAP Value (Impact on Prediction)",
+    y = "Feature",
+    caption = paste("Positive SHAP: Increases prediction | Negative SHAP: Decreases prediction\n",
+                    "Features ordered by importance | Based on mean absolute SHAP value")
+  ) +
+  theme_classic(base_size = 12) +  
+  theme(
+    plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
+    plot.subtitle = element_text(size = 12, hjust = 0.5, color = "grey40"),
+    plot.caption = element_text(size = 10, color = "grey50", hjust = 0),
+    axis.title = element_text(face = "bold", size = 12),
+    axis.text.y = element_text(size = 10, color = "black"),
+    axis.text.x = element_text(size = 10, color = "black"),
+    
+    axis.line = element_line(color = "black", linewidth = 0.8),
+    
+    axis.ticks = element_line(color = "black", linewidth = 0.5),
+    axis.ticks.length = unit(0.2, "cm"), 
+    legend.position = "right",
+    legend.title = element_text(face = "bold", size = 10),
+    legend.text = element_text(size = 9),
+    plot.background = element_rect(fill = "white", color = NA),
+    panel.background = element_rect(fill = "white", color = NA),
+    legend.background = element_rect(fill = "white", color = NA)
+  )
+
+
+print(shap_beeswarm_plot)
+
+
+ggsave("SHAP_beeswarm_plot_red_blue.tiff", shap_beeswarm_plot, 
+       width = 12, height = 10, dpi = 300, bg = "white")
+
+shap_values_df <- as.data.frame(shap_values)
+colnames(shap_values_df) <- colnames(X_matrix)
+
+mean_shap <- colMeans(abs(shap_values_df))
+mean_shap_df <- data.frame(
+  Feature = names(mean_shap),
+  MeanSHAP = mean_shap
+) %>% 
+  arrange(desc(MeanSHAP)) %>%
+  head(17) 
+
+shap_summary_plot <- ggplot(mean_shap_df, aes(x = MeanSHAP, y = reorder(Feature, MeanSHAP))) +
+  geom_col(fill = "blue", alpha = 0.8) +
+  geom_text(aes(label = sprintf("%.3f", MeanSHAP)), hjust = -0.1, size = 3) +
+  labs(
+    title = "SHAP Feature Importance Summary",
+    subtitle = "Feature importance ranking based on mean absolute SHAP value",
+    x = "Mean |SHAP| (Feature Importance)",
+    y = "Feature"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 14, hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    axis.text.y = element_text(size = 10),
+    panel.grid.major.y = element_blank()
+  ) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.1)))
+
+print(shap_summary_plot)
+ggsave("SHAP_summary_plot.tiff", shap_summary_plot, width = 10, height = 7, dpi = 300)
+
