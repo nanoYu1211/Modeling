@@ -1,0 +1,154 @@
+library(dplyr)
+library(caret)
+library(lightgbm)
+library(ggplot2)
+library(randomForest)
+
+data <- read.csv("code.Public database data.csv")
+
+X <- data %>% select(-viability) 
+Y <- data$viability 
+
+set.seed(258)
+
+train_index <- createDataPartition(Y, p = 0.8, list = FALSE)
+X_train <- X[train_index, ]
+Y_train <- Y[train_index]
+X_test <- X[-train_index, ]
+Y_test <- Y[-train_index]
+
+params <- list(
+  objective = "regression",
+  metric = "rmse",
+  learning_rate = 0.05,
+  max_depth = 10,
+  reg_alpha = 0.1,              
+  reg_lambda = 0.2,            
+  num_leaves = 45,
+  feature_fraction = 0.7,
+  subsample = 0.8,
+  n_estimators = 800
+)
+
+calculate_metrics <- function(actual, predicted) {
+  r2 <- 1 - (sum((actual - predicted)^2) / sum((actual - mean(actual))^2))
+  rmse <- sqrt(mean((actual - predicted)^2))
+  mae <- mean(abs(actual - predicted))
+  return(list(R2 = r2, RMSE = rmse, MAE = mae))
+}
+
+set.seed(258)
+folds <- createFolds(Y_train, k = 5) 
+
+cv_results <- data.frame(
+  Fold = integer(),
+  R2 = numeric(),
+  RMSE = numeric(),
+  MAE = numeric()
+)
+
+for (i in 1:5) {
+  val_index <- folds[[i]]
+  X_train_fold <- X_train[-val_index, ]
+  Y_train_fold <- Y_train[-val_index]
+  X_val_fold <- X_train[val_index, ]
+  Y_val_fold <- Y_train[val_index]
+  
+  lgb_train_fold <- lgb.Dataset(as.matrix(X_train_fold), label = Y_train_fold, free_raw_data = FALSE)
+  lgb_val_fold <- lgb.Dataset(as.matrix(X_val_fold), label = Y_val_fold, free_raw_data = FALSE)
+  
+  model_fold <- lgb.train(
+    params,
+    lgb_train_fold,
+    valids = list(valid = lgb_val_fold),
+    early_stopping_rounds = 50 
+  )
+  
+  val_predictions <- predict(model_fold, as.matrix(X_val_fold))
+  
+  metrics <- calculate_metrics(Y_val_fold, val_predictions)
+  
+  cv_results <- rbind(cv_results, data.frame(
+    Fold = i,
+    R2 = metrics$R2,
+    RMSE = metrics$RMSE,
+    MAE = metrics$MAE
+  ))
+}
+
+print(cv_results)
+
+cv_avg_metrics <- cv_results %>%
+  summarise(
+    Avg_R2 = mean(R2),
+    Avg_RMSE = mean(RMSE),
+    Avg_MAE = mean(MAE)
+  )
+
+lgb_train_full <- lgb.Dataset(as.matrix(X_train), label = Y_train, free_raw_data = FALSE)
+final_model <- lgb.train(
+  params,
+  lgb_train_full
+)
+
+train_predictions <- predict(final_model, as.matrix(X_train))
+test_predictions <- predict(final_model, as.matrix(X_test))
+
+train_metrics <- calculate_metrics(Y_train, train_predictions)
+test_metrics <- calculate_metrics(Y_test, test_predictions)
+
+train_matrix <- as.matrix(X_train)
+hat_values <- diag(train_matrix %*% solve(t(train_matrix) %*% train_matrix) %*% t(train_matrix))
+train_std_residuals <- (Y_train - train_predictions) / sd(Y_train - train_predictions)
+
+test_matrix <- as.matrix(X_test)
+test_hat_values <- diag(test_matrix %*% solve(t(train_matrix) %*% train_matrix) %*% t(test_matrix))
+test_std_residuals <- (Y_test - test_predictions) / sd(Y_train - train_predictions)
+
+plot_data <- data.frame(
+  HatValues = c(hat_values, test_hat_values),
+  StdResiduals = c(train_std_residuals, test_std_residuals),
+  Dataset = c(rep("Training", length(Y_train)), rep("Test", length(Y_test))),
+  Type = c(rep("Training", length(Y_train)), rep("Test", length(Y_test)))
+)
+
+p <- ncol(X_train) 
+n <- nrow(X_train)  
+h_star <- 3 * p / n 
+y_threshold <- 3  
+
+hat_value_quantiles <- quantile(plot_data$HatValues, probs = c(0.95, 0.99))
+
+hat_value_cutoff <- hat_value_quantiles[2]
+
+
+plot_data_filtered <- plot_data %>%
+  filter(HatValues <= hat_value_cutoff & abs(StdResiduals) <=15 ) %>%
+  
+  filter(abs(StdResiduals) <= 15)
+williams_plot <- ggplot(plot_data, aes(x = HatValues, y = StdResiduals, color = Type, shape = Type)) +
+  geom_point(alpha = 0.85, size = 5) +
+  geom_hline(yintercept = c(-y_threshold, y_threshold), linetype = "dashed", color = "red", linewidth = 0.8) +
+  geom_vline(xintercept = h_star, linetype = "dashed", color = "red", linewidth = 0.8) +
+  labs(
+    title = paste("AD Thresholds: h* =", round(h_star, 4), ", Y = ±", y_threshold),
+    x = "Leverage", 
+    y = "Standardized Residuals"
+  ) +
+  scale_color_manual(values = c("Training" = "#5b68ad", "Test" = "#4FB5A0")) +
+  scale_shape_manual(values = c("Training" = 16, "Test" = 17)) +
+  theme_bw() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold", family = "Arial"),
+    axis.title.x = element_text(size = 12, face = "bold", family = "Arial"),
+    axis.title.y = element_text(size = 12, face = "bold", family = "Arial"),
+    axis.text.x = element_text(size = 10, face = "bold", family = "Arial"),
+    axis.text.y = element_text(size = 10, face = "bold", family = "Arial"),
+    legend.background = element_blank(),
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", size = 1.5)
+  ) +
+  coord_cartesian(ylim = c(min(plot_data$StdResiduals)*1.1, 
+                           max(plot_data$StdResiduals)*1.1)) 
+print(williams_plot)
+ggsave("williams_plot_filtered.tiff", plot = williams_plot, width = 8, height = 6, dpi = 600)
