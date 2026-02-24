@@ -1,0 +1,49 @@
+install.packages("corrplot")
+library(corrplot)
+library(ggplot2)
+library(ggcorrplot)
+
+data <- read.csv("code.Public database data.csv")
+
+spearman_cor_matrix <- cor(data, method = "spearman")
+
+ggcorrplot(
+  spearman_cor_matrix,
+  type = "full",  
+  lab = TRUE,   
+  lab_size = 3,    
+  method = "square", 
+  colors = c("#D73027", "#FFFFFF", "#4575B4"), 
+  outline.color = "white",  
+  ggtheme = ggplot2::theme_minimal() 
+) + 
+  ggtitle("") + 
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 16, face = "bold"), 
+    axis.title.x = element_blank(), 
+    axis.title.y = element_blank(), 
+    axis.text.x = element_text(face = "bold"), 
+    axis.text.y = element_text(face = "bold"), 
+    aspect.ratio = 1 
+  ) +
+  scale_fill_gradient2(low = "#D73027", mid = "#FFFFFF", high = "#4575B4", midpoint = 0) 
+
+print(last_plot())
+
+output_dir <- "correlation_results"
+if (!dir.exists(output_dir)) {
+  dir.create(output_dir)
+}
+
+ggsave(
+  filename = file.path("spearman_correlation_full.tiff"),
+  plot = last_plot(), 
+  device = "tiff",
+  width = 8, 
+  height = 8,
+  units = "in",
+  dpi = 300,
+  bg = "white"
+)
+
+
