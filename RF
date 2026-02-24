@@ -1,0 +1,157 @@
+library(caret)
+library(randomForest)
+library(dplyr)
+
+data <- read.csv("code.Public database data.csv")
+
+X <- data %>% select(-viability)  
+Y <- data$viability  
+
+sum(is.na(Y))  
+sum(is.na(X)) 
+str(X)         
+
+preprocess_params <- preProcess(X, method = c("center", "scale"))
+X <- predict(preprocess_params, X)
+
+set.seed(258)
+
+train_index <- createDataPartition(Y, p = 0.8, list = FALSE)
+X_train <- X[train_index, ]
+Y_train <- Y[train_index]
+X_test <- X[-train_index, ]
+Y_test <- Y[-train_index]
+
+ctrl <- trainControl(
+  method = "cv", 
+  number = 5,   
+  savePredictions = TRUE, 
+  summaryFunction = defaultSummary  
+)
+
+tune_grid <- expand.grid(mtry = c(2, 4, 6, 8, 10)) 
+
+set.seed(258)
+rf_model <- train(
+  x = X_train,  
+  y = Y_train,  
+  method = "rf",  
+  trControl = ctrl,  
+  tuneGrid = tune_grid, 
+  metric = "RMSE",  
+  ntree = 500,  
+  nodesize = 10,  
+  maxnodes = 50, 
+)
+
+print(rf_model)
+
+cv_metrics <- rf_model$resample
+cat("\n五折交叉验证评估指标：\n")
+print(cv_metrics)
+
+avg_cv_metrics <- colMeans(cv_metrics[, c("RMSE", "Rsquared", "MAE")])
+cat("\n五折交叉验证平均评估指标：\n")
+print(avg_cv_metrics)
+
+train_predictions <- predict(rf_model, X_train)
+test_predictions <- predict(rf_model, X_test)
+
+calculate_metrics <- function(actual, predicted) {
+  r2_score <- 1 - (sum((actual - predicted)^2) / sum((actual - mean(actual))^2))
+  rmse_score <- sqrt(mean((actual - predicted)^2))
+  mae_score <- mean(abs(actual - predicted))
+  return(list(R2 = r2_score, RMSE = rmse_score, MAE = mae_score))
+}
+
+train_metrics <- calculate_metrics(Y_train, train_predictions)
+test_metrics <- calculate_metrics(Y_test, test_predictions)
+
+cat("\n训练集评估指标：\n")
+cat("Train R2-score:", train_metrics$R2, "\n")
+cat("Train RMSE:", train_metrics$RMSE, "\n")
+cat("Train MAE:", train_metrics$MAE, "\n")
+cat("\n测试集评估指标：\n")
+cat("Test R2-score:", test_metrics$R2, "\n")
+cat("Test RMSE:", test_metrics$RMSE, "\n")
+cat("Test MAE:", test_metrics$MAE, "\n")
+
+
+if(!require(ggplot2)) install.packages("ggplot2")
+library(ggplot2)
+
+train_plot <- ggplot() +
+  geom_point(aes(x = Y_train, y = train_predictions), alpha = 0.8,color = "blue", size = 5) +
+  theme_minimal() +
+  expand_limits(x = 0, y = 0) +  
+  theme(
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank(), 
+    axis.line = element_line(color = "black"), 
+    axis.ticks = element_line(color = "black") 
+  ) +
+  labs(x = "", y = "") +
+  ggtitle("")
+
+print(train_plot)
+ggsave("ViaRF_train_predictions.tiff", plot = train_plot, width = 6, height = 5, dpi = 600)
+
+test_plot <- ggplot() +
+  geom_point(aes(x = Y_test, y = test_predictions), alpha = 0.8,color = "#ff7f0e", size = 4.6) +
+  theme_minimal() +
+  expand_limits(x = 0, y = 0) +  
+  theme(
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank(), 
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black")  
+  ) +
+  labs(x = "", y = "") +
+  ggtitle("")
+
+print(test_plot)
+ggsave("ViaRF_test_predictions.tiff", plot = test_plot, width = 6, height = 5, dpi = 600)
+
+validation_data <- read.csv("code.Lab generated data.csv")  
+
+X_validation <- validation_data %>% select(-viability)
+Y_validation <- validation_data$viability
+
+X_validation <- predict(preprocess_params, X_validation)
+
+validation_predictions <- predict(rf_model, X_validation)
+
+validation_metrics <- calculate_metrics(Y_validation, validation_predictions)
+
+cat("\n外部验证集评估指标：\n")
+cat("Validation R2-score:", validation_metrics$R2, "\n")
+cat("Validation RMSE:", validation_metrics$RMSE, "\n")
+cat("Validation MAE:", validation_metrics$MAE, "\n")
+
+library(ggplot2)
+validation_plot <- ggplot() +
+  geom_point(aes(x = Y_validation, y = validation_predictions), alpha = 0.8,color = "#235D3A", size = 10, shape = 17) +
+  scale_x_continuous(
+    breaks = c(0, 30, 60, 90, 120),
+    limits = c(0, 120)  
+  ) +
+  scale_y_continuous(
+    breaks = c(0, 30, 60, 90, 120),
+    limits = c(0, 120)  
+  ) +
+  theme_minimal() +
+  expand_limits(x = 0, y = 0) +  
+  theme(
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank(),  
+    axis.line = element_line(color = "black"), 
+    axis.ticks = element_line(color = "black")  
+  ) +
+  labs(x = "", y = "", title = "") +
+  ggtitle("")
+
+print(validation_plot)
+
+ggsave("ViaRF_external_validation_plot.tiff", validation_plot, width = 8, height = 6, dpi = 600)
+
+
