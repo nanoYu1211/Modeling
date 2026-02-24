@@ -1,0 +1,473 @@
+material,size,shape,Zeta,Synthesis_method,reductant,Syn_time,Syn_temperature,pH,precursor_C,extractant,coating,cell_type,cell_line,Exposure_C,Exposure_time,Via_test,viability
+Au,38.4,sphere,30,chemical,polysaccharide,1.67,125,,10,0,polysaccharide,primary,HFF,10,24,MTT,98.2
+Au,38.4,sphere,30,chemical,polysaccharide,1.67,125,,10,0,polysaccharide,primary,HFF,20,24,MTT,100.6
+Au,38.4,sphere,30,chemical,polysaccharide,1.67,125,,10,0,polysaccharide,primary,HFF,40,24,MTT,101.9
+Au,38.4,sphere,30,chemical,polysaccharide,1.67,125,,10,0,polysaccharide,primary,HFF,60,24,MTT,99.01
+Au,38.4,sphere,30,chemical,polysaccharide,1.67,125,,10,0,polysaccharide,primary,HFF,80,24,MTT,102.1
+Au,38.4,sphere,30,chemical,polysaccharide,1.67,125,,10,0,polysaccharide,primary,HFF,100,24,MTT,95.9
+Au,12,sphere,,chemical,flavonoids,,30,8,0.25,0,flavonoids,primary,HDF,25,24,MTT,95.72
+Au,12,sphere,,chemical,flavonoids,,30,8,0.25,0,flavonoids,primary,HDF,50,24,MTT,90.62
+Au,12,sphere,,chemical,flavonoids,,30,8,0.25,0,flavonoids,primary,HDF,75,24,MTT,81.71
+Au,12,sphere,,chemical,flavonoids,,30,8,0.25,0,flavonoids,primary,HDF,100,24,MTT,52.87
+Au,11.4,sphere,-15,biological,extract,3,25,,1,water,phytochemicals,primary,HFF,7.5,24,MTT,97.7
+Au,11.4,sphere,-15,biological,extract,3,25,,1,water,phytochemicals,primary,HFF,15,24,MTT,93.7
+Au,11.4,sphere,-15,biological,extract,3,25,,1,water,phytochemicals,primary,HFF,30,24,MTT,89.2
+Au,11.4,sphere,-15,biological,extract,3,25,,1,water,phytochemicals,primary,HFF,60,24,MTT,78.2
+Au,18.4,sphere,25.4,chemical,sodium citrate,65,100,,25,0,cationic surfactant,primary,HDF,100,4,MTT,42.8
+Au,18.4,sphere,25.4,chemical,sodium citrate,65,100,,25,0,cationic surfactant,primary,HDF,100,24,MTT,14.7
+Au,18.4,sphere,-14.2,chemical,sodium citrate,65,100,,25,0,PEG,primary,HDF,100,4,MTT,81.8
+Au,18.4,sphere,-14.2,chemical,sodium citrate,65,100,,25,0,PEG,primary,HDF,100,24,MTT,100.2
+Au,18.4,sphere,-13.9,chemical,sodium citrate,185,100,,25,0,protein,primary,HDF,100,4,MTT,92.1
+Au,18.4,sphere,-13.9,chemical,sodium citrate,185,100,,25,0,protein,primary,HDF,100,24,MTT,89.1
+Au,23,rod,38.4,chemical,sodium citrate,62,30,,0.822,0,cationic surfactant,primary,HDF,100,4,MTT,93.8
+Au,23,rod,38.4,chemical,sodium citrate,62,30,,0.822,0,cationic surfactant,primary,HDF,100,24,MTT,149.9
+Au,23,rod,1.3,chemical,sodium citrate,182,30,,0.822,0,PEG,primary,HDF,100,4,MTT,75.7
+Au,23,rod,1.3,chemical,sodium citrate,182,30,,0.822,0,PEG,primary,HDF,100,24,MTT,127.1
+Au,23,rod,-7.6,chemical,sodium citrate,182,30,,0.822,0,protein,primary,HDF,100,4,MTT,76.1
+Au,23,rod,-7.6,chemical,sodium citrate,182,30,,0.822,0,protein,primary,HDF,100,24,MTT,122.3
+Au,62.5,star,43.5,chemical,sodium citrate,67,25,,25,0,cationic surfactant,primary,HDF,100,4,MTT,92.8
+Au,62.5,star,43.5,chemical,sodium citrate,67,25,,25,0,cationic surfactant,primary,HDF,100,24,MTT,108.8
+Au,62.5,star,-8.2,chemical,sodium citrate,187,25,,25,0,PEG,primary,HDF,100,4,MTT,90.4
+Au,62.5,star,-8.2,chemical,sodium citrate,187,25,,25,0,PEG,primary,HDF,100,24,MTT,130.2
+Au,62.5,star,-7.6,chemical,sodium citrate,187,25,,25,0,protein,primary,HDF,100,4,MTT,80.4
+Au,62.5,star,-7.6,chemical,sodium citrate,187,25,,25,0,protein,primary,HDF,100,24,MTT,110.3
+Au,33.3,sphere,-4.52,chemical,sodium citrate,50,100,,20,0,0,primary,HDF,0.5,96,MTT,104
+Au,33.3,sphere,-4.52,chemical,sodium citrate,50,100,,20,0,0,primary,HDF,2.5,96,MTT,101.5
+Au,33.3,sphere,-4.52,chemical,sodium citrate,50,100,,20,0,0,primary,HDF,5,96,MTT,99.4
+Au,33.3,sphere,-4.52,chemical,sodium citrate,50,100,,20,0,0,primary,HDF,25,96,MTT,104.5
+Au,33.3,sphere,-4.52,chemical,sodium citrate,50,100,,20,0,0,primary,HDF,50,96,MTT,101.1
+Au,33.3,sphere,-4.52,chemical,sodium citrate,50,100,,20,0,0,primary,HDF,250,96,MTT,107.8
+Au,33.3,sphere,-4.52,chemical,sodium citrate,50,100,,20,0,0,primary,HDF,500,96,MTT,107.4
+Au,33.3,sphere,-4.52,chemical,sodium citrate,50,100,,20,0,0,primary,HDF,1000,96,MTT,115.3
+Au,26,star,-7.55,chemical,HEPES,30,25,7.4,20,0,0,primary,HDF,0.5,96,MTT,103.6
+Au,26,star,-7.55,chemical,HEPES,30,25,7.4,20,0,0,primary,HDF,2.5,96,MTT,99.4
+Au,26,star,-7.55,chemical,HEPES,30,25,7.4,20,0,0,primary,HDF,5,96,MTT,99.4
+Au,26,star,-7.55,chemical,HEPES,30,25,7.4,20,0,0,primary,HDF,25,96,MTT,100.7
+Au,26,star,-7.55,chemical,HEPES,30,25,7.4,20,0,0,primary,HDF,50,96,MTT,104.5
+Au,26,star,-7.55,chemical,HEPES,30,25,7.4,20,0,0,primary,HDF,250,96,MTT,108.2
+Au,26,star,-7.55,chemical,HEPES,30,25,7.4,20,0,0,primary,HDF,500,96,MTT,110.3
+Au,26,star,-7.55,chemical,HEPES,30,25,7.4,20,0,0,primary,HDF,1000,96,MTT,122.4
+Au,40.6,flower,-14.88,chemical,hydroxylamine,50,-4,7.4,1.9,0,0,primary,HDF,0.5,96,MTT,103.6
+Au,40.6,flower,-14.88,chemical,hydroxylamine,50,-4,7.4,1.9,0,0,primary,HDF,2.5,96,MTT,101.1
+Au,40.6,flower,-14.88,chemical,hydroxylamine,50,-4,7.4,1.9,0,0,primary,HDF,5,96,MTT,102.4
+Au,40.6,flower,-14.88,chemical,hydroxylamine,50,-4,7.4,1.9,0,0,primary,HDF,25,96,MTT,101.1
+Au,40.6,flower,-14.88,chemical,hydroxylamine,50,-4,7.4,1.9,0,0,primary,HDF,50,96,MTT,105.3
+Au,40.6,flower,-14.88,chemical,hydroxylamine,50,-4,7.4,1.9,0,0,primary,HDF,250,96,MTT,113.2
+Au,40.6,flower,-14.88,chemical,hydroxylamine,50,-4,7.4,1.9,0,0,primary,HDF,500,96,MTT,118.3
+Au,40.6,flower,-14.88,chemical,hydroxylamine,50,-4,7.4,1.9,0,0,primary,HDF,1000,96,MTT,130.4
+Au,40,mixture,-24,biological,extract,1,85,2.9,1,ethanol,phytochemicals,primary,HDF,0.25,24,MTT,98
+Au,40,mixture,-24,biological,extract,1,85,2.9,1,ethanol,phytochemicals,primary,HDF,0.5,24,MTT,91.1
+Au,40,mixture,-24,biological,extract,1,85,2.9,1,ethanol,phytochemicals,primary,HDF,1,24,MTT,89.6
+Au,40,mixture,-24,biological,extract,1,85,2.9,1,ethanol,phytochemicals,primary,HDF,2,24,MTT,88.1
+Au,40,mixture,-24,biological,extract,1,85,2.9,1,ethanol,phytochemicals,primary,HDF,4,24,MTT,83
+Au,9,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,5,24,MTT,89.2
+Au,9,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,25,24,MTT,91.6
+Au,9,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,50,24,MTT,104.6
+Au,9,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,100,24,MTT,88.1
+Au,9,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,200,24,MTT,90.4
+Au,9,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,5,72,MTT,159.1
+Au,9,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,25,72,MTT,185.3
+Au,9,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,50,72,MTT,200.6
+Au,9,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,100,72,MTT,213.8
+Au,9,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,200,72,MTT,213.8
+Au,9,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,5,120,MTT,206.6
+Au,9,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,25,120,MTT,204.2
+Au,9,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,50,120,MTT,213.8
+Au,9,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,100,120,MTT,209
+Au,9,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,200,120,MTT,219.5
+Au,11,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,5,24,MTT,96.4
+Au,11,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,25,24,MTT,109.3
+Au,11,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,50,24,MTT,108.1
+Au,11,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,100,24,MTT,101
+Au,11,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,200,24,MTT,114.1
+Au,11,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,5,72,MTT,217.1
+Au,11,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,25,72,MTT,214.9
+Au,11,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,50,72,MTT,177
+Au,11,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,100,72,MTT,187.5
+Au,11,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,200,72,MTT,150.9
+Au,11,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,5,120,MTT,216.1
+Au,11,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,25,120,MTT,219.5
+Au,11,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,50,120,MTT,219.5
+Au,11,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,100,120,MTT,225.5
+Au,11,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,200,120,MTT,223.1
+Au,14,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,5,24,MTT,102.8
+Au,14,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,25,24,MTT,96.8
+Au,14,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,50,24,MTT,111.1
+Au,14,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,100,24,MTT,102.8
+Au,14,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,200,24,MTT,95.6
+Au,14,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,5,72,MTT,178.6
+Au,14,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,25,72,MTT,185.7
+Au,14,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,50,72,MTT,181
+Au,14,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,100,72,MTT,179.8
+Au,14,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,200,72,MTT,173.8
+Au,14,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,5,120,MTT,204.6
+Au,14,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,25,120,MTT,203.4
+Au,14,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,50,120,MTT,208.2
+Au,14,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,100,120,MTT,216.6
+Au,14,sphere,,chemical,PEG,15,80,8.5,0.5,0,PEG,primary,HDF,200,120,MTT,216.6
+Au,28.5,polyhedron,-27.3,chemical,polysaccharide,120,70,11,25,0,polysaccharide,primary,HDF,1,24,MTS,97
+Au,28.5,polyhedron,-27.3,chemical,polysaccharide,120,70,11,25,0,polysaccharide,primary,HDF,5,24,MTS,91.8
+Au,28.5,polyhedron,-27.3,chemical,polysaccharide,120,70,11,25,0,polysaccharide,primary,HDF,10,24,MTS,88.8
+Au,28.5,polyhedron,-27.3,chemical,polysaccharide,120,70,11,25,0,polysaccharide,primary,HDF,15,24,MTS,82.5
+Au,28.5,polyhedron,-27.3,chemical,polysaccharide,120,70,11,25,0,polysaccharide,primary,HDF,20,24,MTS,80.2
+Au,28.5,polyhedron,-27.3,chemical,polysaccharide,120,70,11,25,0,polysaccharide,primary,HDF,1,72,MTS,94.1
+Au,28.5,polyhedron,-27.3,chemical,polysaccharide,120,70,11,25,0,polysaccharide,primary,HDF,5,72,MTS,88.8
+Au,28.5,polyhedron,-27.3,chemical,polysaccharide,120,70,11,25,0,polysaccharide,primary,HDF,10,72,MTS,78.6
+Au,28.5,polyhedron,-27.3,chemical,polysaccharide,120,70,11,25,0,polysaccharide,primary,HDF,15,72,MTS,76.9
+Au,28.5,polyhedron,-27.3,chemical,polysaccharide,120,70,11,25,0,polysaccharide,primary,HDF,20,72,MTS,71.3
+Au/Ag,9.7,polyhedron,-41.8,chemical,polysaccharide,120,70,11,25,0,polysaccharide,primary,HDF,1,24,MTS,93.1
+Au/Ag,9.7,polyhedron,-41.8,chemical,polysaccharide,120,70,11,25,0,polysaccharide,primary,HDF,5,24,MTS,103.4
+Au/Ag,9.7,polyhedron,-41.8,chemical,polysaccharide,120,70,11,25,0,polysaccharide,primary,HDF,10,24,MTS,98
+Au/Ag,9.7,polyhedron,-41.8,chemical,polysaccharide,120,70,11,25,0,polysaccharide,primary,HDF,15,24,MTS,102.7
+Au/Ag,9.7,polyhedron,-41.8,chemical,polysaccharide,120,70,11,25,0,polysaccharide,primary,HDF,20,24,MTS,92.5
+Au/Ag,9.7,polyhedron,-41.8,chemical,polysaccharide,120,70,11,25,0,polysaccharide,primary,HDF,1,72,MTS,69.7
+Au/Ag,9.7,polyhedron,-41.8,chemical,polysaccharide,120,70,11,25,0,polysaccharide,primary,HDF,5,72,MTS,67.3
+Au/Ag,9.7,polyhedron,-41.8,chemical,polysaccharide,120,70,11,25,0,polysaccharide,primary,HDF,10,72,MTS,64.7
+Au/Ag,9.7,polyhedron,-41.8,chemical,polysaccharide,120,70,11,25,0,polysaccharide,primary,HDF,15,72,MTS,63
+Au/Ag,9.7,polyhedron,-41.8,chemical,polysaccharide,120,70,11,25,0,polysaccharide,primary,HDF,20,72,MTS,65.4
+Au,38.6,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,1,24,MTT,98.4
+Au,38.6,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,5,24,MTT,81.7
+Au,38.6,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,10,24,MTT,78.6
+Au,38.6,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,15,24,MTT,68.8
+Au,38.6,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,25,24,MTT,6.2
+Au,38.6,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,1,48,MTT,97.5
+Au,38.6,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,5,48,MTT,80.9
+Au,38.6,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,10,48,MTT,77.6
+Au,38.6,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,15,48,MTT,68
+Au,38.6,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,25,48,MTT,6.6
+Au,38.6,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,1,72,MTT,96.5
+Au,38.6,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,5,72,MTT,79.9
+Au,38.6,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,10,72,MTT,74.9
+Au,38.6,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,15,72,MTT,65.1
+Au,38.6,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,25,72,MTT,6.2
+Au,56.1,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,1,24,MTT,96.1
+Au,56.1,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,5,24,MTT,81.8
+Au,56.1,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,10,24,MTT,77.2
+Au,56.1,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,15,24,MTT,66.4
+Au,56.1,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,25,24,MTT,6.9
+Au,56.1,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,1,48,MTT,98
+Au,56.1,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,5,48,MTT,82.7
+Au,56.1,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,10,48,MTT,76.8
+Au,56.1,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,15,48,MTT,67.8
+Au,56.1,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,25,48,MTT,7.4
+Au,56.1,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,1,72,MTT,98.9
+Au,56.1,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,5,72,MTT,84
+Au,56.1,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,10,72,MTT,79.1
+Au,56.1,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,15,72,MTT,68.6
+Au,56.1,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,25,72,MTT,7.4
+Au,92,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,1,24,MTT,98.5
+Au,92,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,5,24,MTT,89
+Au,92,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,10,24,MTT,85.8
+Au,92,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,15,24,MTT,71.8
+Au,92,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,25,24,MTT,20
+Au,92,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,1,48,MTT,97
+Au,92,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,5,48,MTT,84.9
+Au,92,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,10,48,MTT,80.4
+Au,92,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,15,48,MTT,71
+Au,92,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,25,48,MTT,13.7
+Au,92,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,1,72,MTT,96.6
+Au,92,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,5,72,MTT,84
+Au,92,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,10,72,MTT,79.5
+Au,92,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,15,72,MTT,67.7
+Au,92,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,25,72,MTT,13.2
+Au,38.6,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,17.9,24,MTT,50
+Au,38.6,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,17.9,24,MTT,50
+Au,38.6,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,17.9,24,MTT,50
+Au,38.6,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,17.9,24,MTT,50
+Au,38.6,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,17.9,24,MTT,50
+Au,38.6,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,17.9,24,MTT,50
+Au,56.1,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,18,24,MTT,50
+Au,56.1,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,18,24,MTT,50
+Au,56.1,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,18,24,MTT,50
+Au,56.1,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,18,24,MTT,50
+Au,56.1,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,18,24,MTT,50
+Au,56.1,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,18,24,MTT,50
+Au,92,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,19.3,24,MTT,50
+Au,92,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,19.3,24,MTT,50
+Au,92,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,19.3,24,MTT,50
+Au,92,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,19.3,24,MTT,50
+Au,92,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,19.3,24,MTT,50
+Au,92,sphere,,chemical,Purchased,,,,,0,0,primary,HDF,19.3,24,MTT,50
+Au,58,sphere,-27.7,biological,extract,60,25,,25,water,phytochemicals,primary,HDF,25,48,MTT,22.6
+Au,58,sphere,-27.7,biological,extract,60,25,,25,water,phytochemicals,primary,HDF,50,48,MTT,20.8
+Au,58,sphere,-27.7,biological,extract,60,25,,25,water,phytochemicals,primary,HDF,100,48,MTT,23.5
+Au,58,sphere,-27.7,biological,extract,60,25,,25,water,phytochemicals,primary,HDF,200,48,MTT,26.1
+Au,55,star,,chemical,ascorbic acid,45,40,10,25,0,0,primary,HFF,400,48,SRB,59.2
+Au,55,star,,chemical,ascorbic acid,45,40,10,25,0,0,primary,HFF,200,48,SRB,64.7
+Au,55,star,,chemical,ascorbic acid,45,40,10,25,0,0,primary,HFF,100,48,SRB,81.1
+Au,55,star,,chemical,ascorbic acid,45,40,10,25,0,0,primary,HFF,50,48,SRB,85.4
+Au,55,star,,chemical,ascorbic acid,45,40,10,25,0,0,primary,HFF,20,48,SRB,84
+Au,74.3,branch,-5.2,chemical,ascorbic acid,45,40,3,25,0,protein,primary,HFF,400,48,SRB,69.5
+Au,74.3,branch,-5.2,chemical,ascorbic acid,45,40,3,25,0,protein,primary,HFF,200,48,SRB,78.5
+Au,74.3,branch,-5.2,chemical,ascorbic acid,45,40,3,25,0,protein,primary,HFF,100,48,SRB,82.2
+Au,74.3,branch,-5.2,chemical,ascorbic acid,45,40,3,25,0,protein,primary,HFF,50,48,SRB,80.9
+Au,74.3,branch,-5.2,chemical,ascorbic acid,45,40,3,25,0,protein,primary,HFF,20,48,SRB,88.8
+Au,14.54,mixture,-34.89,biological,flavonoids,10,25,7.2,0.25,0,flavonoids,Immortalized,HaCaT,120,48,MTT,81.3
+Au,14.54,mixture,-34.89,biological,flavonoids,10,25,7.2,0.25,0,flavonoids,Immortalized,HaCaT,60,48,MTT,89.1
+Au,14.54,mixture,-34.89,biological,flavonoids,10,25,7.2,0.25,0,flavonoids,Immortalized,HaCaT,30,48,MTT,93.1
+Au,14.54,mixture,-34.89,biological,flavonoids,10,25,7.2,0.25,0,flavonoids,Immortalized,HaCaT,15,48,MTT,96.1
+Au,14.54,mixture,-34.89,biological,flavonoids,10,25,7.2,0.25,0,flavonoids,Immortalized,HaCaT,7.5,48,MTT,96.9
+Au,8,sphere,-85.4,chemical,Deposition and Precipitation,,,,,0,carboxyl group,primary,HDF,15.54,24,MTT,89
+Au,8,sphere,-85.4,chemical,Deposition and Precipitation,,,,,0,carboxyl group,primary,HDF,1.94,24,MTT,94.3
+Au,8,sphere,-85.4,chemical,Deposition and Precipitation,,,,,0,carboxyl group,primary,HDF,0.971,24,MTT,98.8
+Au,8,sphere,-85.4,chemical,Deposition and Precipitation,,,,,0,carboxyl group,primary,HDF,0.49,24,MTT,97.2
+Au,18,sphere,69.6,chemical,lysozyme protein,720,25,12,10,0,protein,primary,HDF,15.54,24,MTT,51.6
+Au,18,sphere,69.6,chemical,lysozyme protein,720,25,12,10,0,protein,primary,HDF,1.94,24,MTT,81.1
+Au,18,sphere,69.6,chemical,lysozyme protein,720,25,12,10,0,protein,primary,HDF,0.971,24,MTT,84.8
+Au,18,sphere,69.6,chemical,lysozyme protein,720,25,12,10,0,protein,primary,HDF,0.49,24,MTT,88.5
+Au,23.42,mixture,,biological,extract,10,60,4,4,water,phytochemicals,Immortalized,HaCaT,10,24,MTT,112.7
+Au,23.42,mixture,,biological,extract,10,60,4,4,water,phytochemicals,Immortalized,HaCaT,50,24,MTT,110
+Au,23.42,mixture,,biological,extract,10,60,4,4,water,phytochemicals,Immortalized,HaCaT,100,24,MTT,110
+Au,23.42,mixture,,biological,extract,10,60,4,4,water,phytochemicals,Immortalized,HaCaT,200,24,MTT,100.1
+Au,23.42,mixture,,biological,extract,10,60,4,4,water,phytochemicals,Immortalized,HaCaT,400,24,MTT,86.6
+Au,23.42,mixture,,biological,extract,10,60,4,4,water,phytochemicals,Immortalized,HaCaT,800,24,MTT,85.3
+Au,23.42,mixture,,biological,extract,10,60,4,4,water,phytochemicals,Immortalized,HaCaT,100,24,LIVE/DEAD,97.4
+Au,23.42,mixture,,biological,extract,10,60,4,4,water,phytochemicals,Immortalized,HaCaT,200,24,LIVE/DEAD,94.5
+Au,98,mixture,-55.77,biological,extract,30,50,,2,water,flavonoids,Immortalized,HaCaT,6.25,24,MTT,110.7
+Au,98,mixture,-55.77,biological,extract,30,50,,2,water,flavonoids,Immortalized,HaCaT,12.5,24,MTT,103.9
+Au,98,mixture,-55.77,biological,extract,30,50,,2,water,flavonoids,Immortalized,HaCaT,25,24,MTT,100.7
+Au,98,mixture,-55.77,biological,extract,30,50,,2,water,flavonoids,Immortalized,HaCaT,50,24,MTT,99
+Au,98,mixture,-55.77,biological,extract,30,50,,2,water,flavonoids,Immortalized,HaCaT,100,24,MTT,75
+Au,38.2,polyhedron,,biological,extract,20,70,,2,glycol,phytochemicals,Immortalized,HaCaT,25,24,MTT,119.1
+Au,38.2,polyhedron,,biological,extract,20,70,,2,glycol,phytochemicals,Immortalized,HaCaT,50,24,MTT,115.5
+Au,38.2,polyhedron,,biological,extract,20,70,,2,glycol,phytochemicals,Immortalized,HaCaT,100,24,MTT,89
+Au,38.2,polyhedron,,biological,extract,20,70,,2,glycol,phytochemicals,Immortalized,HaCaT,25,24,LIVE/DEAD,99.3
+Au,38.2,polyhedron,,biological,extract,20,70,,2,glycol,phytochemicals,Immortalized,HaCaT,50,24,LIVE/DEAD,95.8
+Au,38.2,polyhedron,,biological,extract,20,70,,2,glycol,phytochemicals,Immortalized,HaCaT,100,24,LIVE/DEAD,90
+Au,62.7,mixture,,biological,extract,40,40,,1.5,ethanol,phytochemicals,Immortalized,HaCaT,25,24,MTT,106.6
+Au,62.7,mixture,,biological,extract,40,40,,1.5,ethanol,phytochemicals,Immortalized,HaCaT,50,24,MTT,104.6
+Au,62.7,mixture,,biological,extract,40,40,,1.5,ethanol,phytochemicals,Immortalized,HaCaT,100,24,MTT,107
+Au,62.7,mixture,,biological,extract,40,40,,1.5,ethanol,phytochemicals,Immortalized,HaCaT,200,24,MTT,103.5
+Au,30,sphere,-21.1,biological,extract,90,70,,50,water-ethanol,polyphenol,Immortalized,NCTC,1,48,MTT,104.1
+Au,30,sphere,-21.1,biological,extract,90,70,,50,water-ethanol,polyphenol,Immortalized,NCTC,2.5,48,MTT,106.88
+Au,30,sphere,-21.1,biological,extract,90,70,,50,water-ethanol,polyphenol,Immortalized,NCTC,5,48,MTT,102.5
+Au,30,sphere,-21.1,biological,extract,90,70,,50,water-ethanol,polyphenol,Immortalized,NCTC,10,48,MTT,106.65
+Au,30,sphere,-21.1,biological,extract,90,70,,50,water-ethanol,polyphenol,Immortalized,NCTC,25,48,MTT,100.09
+Au,30,sphere,-21.1,biological,extract,90,70,,50,water-ethanol,polyphenol,Immortalized,NCTC,50,48,MTT,101.13
+Au,30,sphere,-21.1,biological,extract,90,70,,50,water-ethanol,polyphenol,Immortalized,NCTC,100,48,MTT,101.23
+Au,30,sphere,-21.1,biological,extract,90,70,,50,water-ethanol,polyphenol,Immortalized,NCTC,250,48,MTT,101.13
+Au,22.57,sphere,51.6,biological,extract,150,25,6,1,water-ethanol,polyphenol,Immortalized,KMST,1.5625,24,MTT,103.62
+Au,22.57,sphere,51.6,biological,extract,150,25,6,1,water-ethanol,polyphenol,Immortalized,KMST,3.125,24,MTT,97.83
+Au,22.57,sphere,51.6,biological,extract,150,25,6,1,water-ethanol,polyphenol,Immortalized,KMST,6.25,24,MTT,99.78
+Au,22.57,sphere,51.6,biological,extract,150,25,6,1,water-ethanol,polyphenol,Immortalized,KMST,12.5,24,MTT,91.1
+Au,22.57,sphere,51.6,biological,extract,150,25,6,1,water-ethanol,polyphenol,Immortalized,KMST,25,24,MTT,90.73
+Au,22.57,sphere,51.6,biological,extract,150,25,6,1,water-ethanol,polyphenol,Immortalized,KMST,50,24,MTT,87.99
+Au,29.54,sphere,41.69,biological,extract,120,50,4,1,water-ethanol,polyphenol,Immortalized,KMST,1.5625,24,MTT,100.15
+Au,29.54,sphere,41.69,biological,extract,120,50,4,1,water-ethanol,polyphenol,Immortalized,KMST,3.125,24,MTT,103.62
+Au,29.54,sphere,41.69,biological,extract,120,50,4,1,water-ethanol,polyphenol,Immortalized,KMST,6.25,24,MTT,105.62
+Au,29.54,sphere,41.69,biological,extract,120,50,4,1,water-ethanol,polyphenol,Immortalized,KMST,12.5,24,MTT,106.72
+Au,29.54,sphere,41.69,biological,extract,120,50,4,1,water-ethanol,polyphenol,Immortalized,KMST,25,24,MTT,110.51
+Au,29.54,sphere,41.69,biological,extract,120,50,4,1,water-ethanol,polyphenol,Immortalized,KMST,50,24,MTT,118.5
+Au,23.11,sphere,50.76,biological,extract,120,50,5,1,water-ethanol,polyphenol,Immortalized,KMST,1.5625,24,MTT,98.73
+Au,23.11,sphere,50.76,biological,extract,120,50,5,1,water-ethanol,polyphenol,Immortalized,KMST,3.125,24,MTT,97.25
+Au,23.11,sphere,50.76,biological,extract,120,50,5,1,water-ethanol,polyphenol,Immortalized,KMST,6.25,24,MTT,100.36
+Au,23.11,sphere,50.76,biological,extract,120,50,5,1,water-ethanol,polyphenol,Immortalized,KMST,12.5,24,MTT,106.35
+Au,23.11,sphere,50.76,biological,extract,120,50,5,1,water-ethanol,polyphenol,Immortalized,KMST,25,24,MTT,117.56
+Au,23.11,sphere,50.76,biological,extract,120,50,5,1,water-ethanol,polyphenol,Immortalized,KMST,50,24,MTT,131.55
+Au,19,mixture,27,biological,extract,30,40,,2.544,water-ethanol-methanol,phytochemicals,Immortalized,HDF,500,72,MTT,92.97
+Au,19,mixture,27,biological,extract,30,40,,2.544,water-ethanol-methanol,phytochemicals,Immortalized,HDF,1000,72,MTT,90.97
+Au,19,mixture,27,biological,extract,30,40,,2.544,water-ethanol-methanol,phytochemicals,Immortalized,HDF,2000,72,MTT,84.29
+Au,19,mixture,27,biological,extract,30,40,,2.544,water-ethanol-methanol,phytochemicals,Immortalized,HDF,4000,72,MTT,79.85
+Au,19,mixture,27,biological,extract,30,40,,2.544,water-ethanol-methanol,phytochemicals,Immortalized,HDF,8000,72,MTT,59.14
+Au,21,sphere,-35,chemical,sodium citrate,95,30,,,0,0,Immortalized,HFF,3,24,MTT,98.06
+Au,21,sphere,-35,chemical,sodium citrate,95,30,,,0,0,Immortalized,HFF,5,24,MTT,99.7
+Au,21,sphere,-35,chemical,sodium citrate,95,30,,,0,0,Immortalized,HFF,10,24,MTT,98.3
+Au,21,sphere,-35,chemical,sodium citrate,95,30,,,0,0,Immortalized,HFF,15,24,MTT,95.08
+Au,21,sphere,-35,chemical,sodium citrate,95,30,,,0,0,Immortalized,HFF,25,24,MTT,96.18
+Au,19,sphere,16,chemical,sodium citrate,25,45,,,0,protein,Immortalized,HFF,3,24,MTT,100.38
+Au,19,sphere,16,chemical,sodium citrate,25,45,,,0,protein,Immortalized,HFF,5,24,MTT,101.87
+Au,19,sphere,16,chemical,sodium citrate,25,45,,,0,protein,Immortalized,HFF,10,24,MTT,101.43
+Au,19,sphere,16,chemical,sodium citrate,25,45,,,0,protein,Immortalized,HFF,15,24,MTT,97.18
+Au,19,sphere,16,chemical,sodium citrate,25,45,,,0,protein,Immortalized,HFF,25,24,MTT,97.4
+Au,27,mixture,,biological,extract,25,35,3.5,1,water,phytochemicals,Immortalized,HaCaT,6.25,24,NRU,100.13
+Au,27,mixture,,biological,extract,25,35,3.5,1,water,phytochemicals,Immortalized,HaCaT,12.5,24,NRU,102.84
+Au,27,mixture,,biological,extract,25,35,3.5,1,water,phytochemicals,Immortalized,HaCaT,25,24,NRU,104.4
+Au,27,mixture,,biological,extract,25,35,3.5,1,water,phytochemicals,Immortalized,HaCaT,50,24,NRU,104.54
+Au,27,mixture,,biological,extract,25,35,3.5,1,water,phytochemicals,Immortalized,HaCaT,100,24,NRU,107.1
+Au,27,mixture,,biological,extract,25,35,3.5,1,water,phytochemicals,Immortalized,HaCaT,250,24,NRU,113.79
+Au,14.4,mixture,,biological,extract,25,35,3.5,1,water,phytochemicals,Immortalized,HaCaT,6.25,24,NRU,98.17
+Au,14.4,mixture,,biological,extract,25,35,3.5,1,water,phytochemicals,Immortalized,HaCaT,12.5,24,NRU,98.99
+Au,14.4,mixture,,biological,extract,25,35,3.5,1,water,phytochemicals,Immortalized,HaCaT,25,24,NRU,94.42
+Au,14.4,mixture,,biological,extract,25,35,3.5,1,water,phytochemicals,Immortalized,HaCaT,50,24,NRU,98.46
+Au,14.4,mixture,,biological,extract,25,35,3.5,1,water,phytochemicals,Immortalized,HaCaT,100,24,NRU,99.03
+Au,14.4,mixture,,biological,extract,25,35,3.5,1,water,phytochemicals,Immortalized,HaCaT,250,24,NRU,98.74
+Au,24.1,mixture,,biological,extract,25,35,3.5,1,water,phytochemicals,Immortalized,HaCaT,6.25,24,NRU,95.15
+Au,24.1,mixture,,biological,extract,25,35,3.5,1,water,phytochemicals,Immortalized,HaCaT,12.5,24,NRU,98.85
+Au,24.1,mixture,,biological,extract,25,35,3.5,1,water,phytochemicals,Immortalized,HaCaT,25,24,NRU,101.98
+Au,24.1,mixture,,biological,extract,25,35,3.5,1,water,phytochemicals,Immortalized,HaCaT,50,24,NRU,112.8
+Au,24.1,mixture,,biological,extract,25,35,3.5,1,water,phytochemicals,Immortalized,HaCaT,100,24,NRU,106.11
+Au,24.1,mixture,,biological,extract,25,35,3.5,1,water,phytochemicals,Immortalized,HaCaT,250,24,NRU,107.67
+Ag,65.8,mixture,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,6.25,24,NRU,97.86
+Ag,65.8,mixture,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,12.5,24,NRU,97.57
+Ag,65.8,mixture,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,25,24,NRU,96.01
+Ag,65.8,mixture,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,50,24,NRU,18.79
+Ag,65.8,mixture,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,100,24,NRU,22.49
+Ag,65.8,mixture,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,250,24,NRU,17.79
+Ag,65.8,mixture,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,500,24,NRU,32.02
+Ag,65.8,mixture,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,750,24,NRU,27.61
+Ag,65.8,mixture,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,1000,24,NRU,35.71
+Ag,45.4,mixture,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,6.25,24,NRU,99.18
+Ag,45.4,mixture,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,12.5,24,NRU,99.03
+Ag,45.4,mixture,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,25,24,NRU,99.18
+Ag,45.4,mixture,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,50,24,NRU,16.51
+Ag,45.4,mixture,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,100,24,NRU,13.77
+Ag,45.4,mixture,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,250,24,NRU,17.66
+Ag,45.4,mixture,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,500,24,NRU,32.64
+Ag,45.4,mixture,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,750,24,NRU,27.6
+Ag,45.4,mixture,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,1000,24,NRU,27.74
+Ag,66,sphere,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,6.25,24,NRU,103.4
+Ag,66,sphere,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,12.5,24,NRU,98.7
+Ag,66,sphere,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,25,24,NRU,95.43
+Ag,66,sphere,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,50,24,NRU,32.5
+Ag,66,sphere,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,100,24,NRU,16.13
+Ag,66,sphere,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,250,24,NRU,24.53
+Ag,66,sphere,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,500,24,NRU,30.51
+Ag,66,sphere,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,750,24,NRU,41.61
+Ag,66,sphere,,biological,extract,180,60,9,1,water,phytochemicals,Immortalized,HaCaT,1000,24,NRU,30.06
+Ag,20.4,sphere,,chemical,Purchased,,,,,0,0,primary,HFF,4.8,24,MTT,50
+Ag,30.6,sphere,,chemical,Purchased,,,,,0,0,primary,HFF,4.4,24,MTT,50
+Ag,10,sphere,-31,chemical,sodium citrate,,25,,1,0,tannic acid,Immortalized,HaCaT,18.51,24,JC-1,50
+Ag,25,sphere,-58,chemical,sodium citrate,15,100,,1,0,tannic acid,Immortalized,HaCaT,19.71,24,JC-1,50
+Ag,34,sphere,-56,chemical,sodium citrate,15,100,,0.942,0,tannic acid,Immortalized,HaCaT,18.72,24,JC-1,50
+Ag,21,sphere,-64,chemical,sodium citrate,15,100,,0.3,0,0,Immortalized,HaCaT,26.31,24,JC-1,50
+Ag,25,sphere,,biological,extract,5760,37,,1,ethanol?,flavonoids,Immortalized,HaCaT,5,24,MTT,99.1
+Ag,25,sphere,,biological,extract,5760,37,,1,ethanol?,flavonoids,Immortalized,HaCaT,10,24,MTT,97.9
+Ag,25,sphere,,biological,extract,5760,37,,1,ethanol?,flavonoids,Immortalized,HaCaT,50,24,MTT,97.2
+Ag,25,sphere,,biological,extract,5760,37,,1,ethanol?,flavonoids,Immortalized,HaCaT,100,24,MTT,95.6
+Ag,25,sphere,,biological,extract,5760,37,,1,ethanol?,flavonoids,Immortalized,HaCaT,250,24,MTT,92.7
+Ag,20.88,sphere,50.63,chemical,sodium borohydride,100,0,,1,0,polysaccharide,primary,HSF,29.63,24,MTT,50
+Ag,2.9,sphere,,chemical,surfactant,70,60,,0.1,0,cationic surfactant,primary,HSF,51.3,24,MTT,50
+Ag,2.4,sphere,,chemical,surfactant,70,60,,0.1,0,cationic surfactant,primary,HSF,45.9,24,MTT,50
+Ag,2.2,sphere,,chemical,surfactant,70,60,,0.1,0,cationic surfactant,primary,HSF,42.5,24,MTT,50
+Ag,2,sphere,,chemical,surfactant,70,60,,0.1,0,cationic surfactant,primary,HSF,37.4,24,MTT,50
+Ag,1.7,sphere,,chemical,surfactant,70,60,,0.1,0,cationic surfactant,primary,HSF,36.6,24,MTT,50
+Ag,1.5,sphere,,chemical,surfactant,70,60,,0.1,0,cationic surfactant,primary,HSF,35.6,24,MTT,50
+Ag,10.43,sphere,-22,chemical,sodium borohydride,,,,,0,0,primary,HDF,0.05,24,MTT,94.6
+Ag,10.43,sphere,-22,chemical,sodium borohydride,,,,,0,0,primary,HDF,0.1,24,MTT,94
+Ag,10.43,sphere,-22,chemical,sodium borohydride,,,,,0,0,primary,HDF,0.5,24,MTT,93.8
+Ag,10.43,sphere,-22,chemical,sodium borohydride,,,,,0,0,primary,HDF,1,24,MTT,94.4
+Ag,10.43,sphere,-22,chemical,sodium borohydride,,,,,0,0,primary,HDF,10,24,MTT,100.1
+Ag,10.43,sphere,-22,chemical,sodium borohydride,,,,,0,0,primary,HDF,25,24,MTT,103.3
+Ag,10.43,sphere,-22,chemical,sodium borohydride,,,,,0,0,primary,NHEK,0.05,24,MTT,91.3
+Ag,10.43,sphere,-22,chemical,sodium borohydride,,,,,0,0,primary,NHEK,0.1,24,MTT,97
+Ag,10.43,sphere,-22,chemical,sodium borohydride,,,,,0,0,primary,NHEK,0.5,24,MTT,72.7
+Ag,10.43,sphere,-22,chemical,sodium borohydride,,,,,0,0,primary,NHEK,1,24,MTT,92.7
+Ag,10.43,sphere,-22,chemical,sodium borohydride,,,,,0,0,primary,NHEK,10,24,MTT,86.7
+Ag,10.43,sphere,-22,chemical,sodium borohydride,,,,,0,0,primary,NHEK,25,24,MTT,74.1
+Ag,5.5,mixture,,chemical,Purchased,,,,,0,0,primary,HDF,3.36,24,MTT,61.2
+Ag,5.5,mixture,,chemical,Purchased,,,,,0,0,primary,HDF,3.36,24,MTT,61.2
+Ag,5.5,mixture,,chemical,Purchased,,,,,0,0,primary,HDF,3.36,24,MTT,61.2
+Ag,5.5,mixture,,chemical,Purchased,,,,,0,0,primary,HDF,3.36,24,MTT,61.2
+Ag,5.5,mixture,,chemical,Purchased,,,,,0,0,primary,HDF,3.36,24,MTT,61.2
+Ag,5.5,mixture,,chemical,Purchased,,,,,0,0,primary,HDF,3.36,24,LDH,6.8
+Ag,5.5,mixture,,chemical,Purchased,,,,,0,0,primary,HDF,3.36,24,LDH,6.8
+Ag,5.5,mixture,,chemical,Purchased,,,,,0,0,primary,HDF,3.36,24,LDH,6.8
+Ag,5.5,mixture,,chemical,Purchased,,,,,0,0,primary,HDF,3.36,24,LDH,6.8
+Ag,5.5,mixture,,chemical,Purchased,,,,,0,0,primary,HDF,3.36,24,LDH,6.8
+Ag,41.06,mixture,,chemical,Purchased,,,,,0,0,primary,HDF,100,24,MTT,87.6
+Ag,41.06,mixture,,chemical,Purchased,,,,,0,0,primary,HDF,100,24,MTT,87.6
+Ag,41.06,mixture,,chemical,Purchased,,,,,0,0,primary,HDF,100,24,MTT,87.6
+Ag,41.06,mixture,,chemical,Purchased,,,,,0,0,primary,HDF,100,24,MTT,87.6
+Ag,41.06,mixture,,chemical,Purchased,,,,,0,0,primary,HDF,100,24,MTT,87.6
+Ag,41.06,mixture,,chemical,Purchased,,,,,0,0,primary,HDF,100,24,LDH,10.6
+Ag,41.06,mixture,,chemical,Purchased,,,,,0,0,primary,HDF,100,24,LDH,10.6
+Ag,41.06,mixture,,chemical,Purchased,,,,,0,0,primary,HDF,100,24,LDH,10.6
+Ag,41.06,mixture,,chemical,Purchased,,,,,0,0,primary,HDF,100,24,LDH,10.6
+Ag,41.06,mixture,,chemical,Purchased,,,,,0,0,primary,HDF,100,24,LDH,10.6
+Ag,8.48,sphere,,biological,extract,2880,30,,2,water,protein,primary,HSF,31.78,24,SRB,50
+Ag,9.67,sphere,,biological,extract,2880,30,,2,water,protein,primary,HSF,25.83,24,SRB,50
+Ag,21.9,sphere,-80.7,biological,extract,60,90,,1,water,phytochemicals,primary,HDF,30,48,MTT,101.3
+Ag,21.9,sphere,-80.7,biological,extract,60,90,,1,water,phytochemicals,primary,HDF,60,48,MTT,98.4
+Ag,21.9,sphere,-80.7,biological,extract,60,90,,1,water,phytochemicals,primary,HDF,90,48,MTT,98.2
+Ag,21.9,sphere,-80.7,biological,extract,60,90,,1,water,phytochemicals,primary,HDF,120,48,MTT,99.7
+Ag,21.9,sphere,-80.7,biological,extract,60,90,,1,water,phytochemicals,primary,HDF,120,48,MTT,99.7
+Ag,21.9,sphere,-80.7,biological,extract,60,90,,1,water,phytochemicals,primary,HDF,120,48,MTT,99.7
+Ag,21.9,sphere,-80.7,biological,extract,60,90,,1,water,phytochemicals,primary,HDF,150,48,MTT,96.8
+Ag,21.9,sphere,-80.7,biological,extract,60,90,,1,water,phytochemicals,primary,HDF,180,48,MTT,98.8
+Ag,21.9,sphere,-80.7,biological,extract,60,90,,1,water,phytochemicals,primary,HDF,210,48,MTT,95.6
+Ag,21.9,sphere,-80.7,biological,extract,60,90,,1,water,phytochemicals,primary,HDF,240,48,MTT,89.8
+Ag,30,sphere,,chemical,polyvinylpyrrolidone,,,,,0,0,primary,HFF,0.25,24,MTT,94.6
+Ag,30,sphere,,chemical,polyvinylpyrrolidone,,,,,0,0,primary,HFF,2.5,24,MTT,89.5
+Ag,30,sphere,,chemical,polyvinylpyrrolidone,,,,,0,0,primary,HFF,25,24,MTT,79.6
+Ag,25,mixture,-20.5,biological,extract,,80,,1,water,phytochemicals,primary,HSF,54.99,72,SRB,50
+Ag,20,sphere,-31.2,chemical,sodium citrate,15,100,,1,0,0,primary,HSF,100,24,MTT,48.5
+Ag,20,sphere,-31.2,chemical,sodium citrate,15,100,,1,0,0,primary,HSF,200,24,MTT,41.3
+Ag,20,sphere,-31.2,chemical,sodium citrate,15,100,,1,0,0,primary,HSF,400,24,MTT,41.3
+Ag,20,sphere,-31.2,chemical,sodium citrate,15,100,,1,0,0,primary,HSF,600,24,MTT,30.9
+Ag,20,sphere,-31.2,chemical,sodium citrate,15,100,,1,0,0,primary,HSF,1000,24,MTT,16
+Ag,20,sphere,-31.2,chemical,sodium citrate,15,100,,1,0,0,Immortalized,HaCaT,100,24,MTT,52.9
+Ag,20,sphere,-31.2,chemical,sodium citrate,15,100,,1,0,0,Immortalized,HaCaT,200,24,MTT,46.9
+Ag,20,sphere,-31.2,chemical,sodium citrate,15,100,,1,0,0,Immortalized,HaCaT,400,24,MTT,25.6
+Ag,20,sphere,-31.2,chemical,sodium citrate,15,100,,1,0,0,Immortalized,HaCaT,600,24,MTT,14.7
+Ag,20,sphere,-31.2,chemical,sodium citrate,15,100,,1,0,0,Immortalized,HaCaT,1000,24,MTT,14.7
+Ag,20,sphere,-32.4,chemical,polysaccharide,10,50,11,1,0,polysaccharide,primary,HSF,100,24,MTT,90.3
+Ag,20,sphere,-32.4,chemical,polysaccharide,10,50,11,1,0,polysaccharide,primary,HSF,200,24,MTT,86.4
+Ag,20,sphere,-32.4,chemical,polysaccharide,10,50,11,1,0,polysaccharide,primary,HSF,400,24,MTT,83.1
+Ag,20,sphere,-32.4,chemical,polysaccharide,10,50,11,1,0,polysaccharide,primary,HSF,600,24,MTT,83.7
+Ag,20,sphere,-32.4,chemical,polysaccharide,10,50,11,1,0,polysaccharide,primary,HSF,1000,24,MTT,78.7
+Ag,20,sphere,-32.4,chemical,polysaccharide,10,50,11,1,0,polysaccharide,Immortalized,HaCaT,100,24,MTT,92.6
+Ag,20,sphere,-32.4,chemical,polysaccharide,10,50,11,1,0,polysaccharide,Immortalized,HaCaT,200,24,MTT,83.3
+Ag,20,sphere,-32.4,chemical,polysaccharide,10,50,11,1,0,polysaccharide,Immortalized,HaCaT,400,24,MTT,76.2
+Ag,20,sphere,-32.4,chemical,polysaccharide,10,50,11,1,0,polysaccharide,Immortalized,HaCaT,600,24,MTT,72.4
+Ag,20,sphere,-32.4,chemical,polysaccharide,10,50,11,1,0,polysaccharide,Immortalized,HaCaT,1000,24,MTT,71.8
+Ag,8.3,sphere,,biological,extract,5760,25,,3,water,phytochemicals,primary,hSSCs,2,24,Alamar Blue,87.8
+Ag,8.3,sphere,,biological,extract,5760,25,,3,water,phytochemicals,primary,hSSCs,4,24,Alamar Blue,86.5
+Ag,8.3,sphere,,biological,extract,5760,25,,3,water,phytochemicals,primary,hSSCs,6,24,Alamar Blue,84.2
+Ag,8.3,sphere,,biological,extract,5760,25,,3,water,phytochemicals,primary,hSSCs,8,24,Alamar Blue,82.8
+Ag,8.3,sphere,,biological,extract,5760,25,,3,water,phytochemicals,primary,hSSCs,10,24,Alamar Blue,80.8
+Ag,30,sphere,,chemical,Purchased,,,,,0,0,Immortalized,HaCaT,7.81,24,Alamar Blue,97.9
+Ag,30,sphere,,chemical,Purchased,,,,,0,0,Immortalized,HaCaT,15.63,24,Alamar Blue,90.65
+Ag,30,sphere,,chemical,Purchased,,,,,0,0,Immortalized,HaCaT,31.25,24,Alamar Blue,77.92
+Ag,30,sphere,,chemical,Purchased,,,,,0,0,Immortalized,HaCaT,62.5,24,Alamar Blue,63.61
+Ag,30,sphere,,chemical,Purchased,,,,,0,0,Immortalized,HaCaT,125,24,Alamar Blue,60.14
+Ag,30,sphere,,chemical,Purchased,,,,,0,0,Immortalized,HaCaT,250,24,Alamar Blue,41.92
+Ag,30,sphere,,chemical,Purchased,,,,,0,0,Immortalized,HaCaT,500,24,Alamar Blue,24.81
+Ag,18.51,sphere,-32.2,biological,extract,720,24,,1,water,phytochemicals,Immortalized,HSF,500,24,MTT,75.45
+Ag,18.51,sphere,-32.2,biological,extract,720,24,,1,water,phytochemicals,Immortalized,HSF,1000,24,MTT,57.89
+Ag,18.51,sphere,-32.2,biological,extract,720,24,,1,water,phytochemicals,Immortalized,HSF,1500,24,MTT,51.54
+Ag,20,sphere,-51,physics,high_voltage,,,,,0,0,primary,NHEK,2,24,XTT,76.59
+Ag,20,sphere,-51,physics,high_voltage,,,,,0,0,primary,NHEK,5,24,XTT,59.68
+Ag,20,sphere,-51,physics,high_voltage,,,,,0,0,primary,NHEK,10,24,XTT,0
+Ag,20,sphere,-51,physics,high_voltage,,,,,0,0,primary,HDF,2,24,XTT,93.3
+Ag,20,sphere,-51,physics,high_voltage,,,,,0,0,primary,HDF,5,24,XTT,92.17
+Ag,20,sphere,-51,physics,high_voltage,,,,,0,0,primary,HDF,10,24,XTT,84.34
+Au,16,sphere,30,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,60,24,LIVE/DEAD,88.4
+Au,16,sphere,30,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,125,24,LIVE/DEAD,77.2
+Au,16,sphere,30,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,250,24,LIVE/DEAD,76.4
+Au,16,sphere,30,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,500,24,LIVE/DEAD,43.7
+Au,16,sphere,30,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,1000,24,LIVE/DEAD,48.9
+Au,16,sphere,30,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,60,48,LIVE/DEAD,84.3
+Au,16,sphere,30,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,125,48,LIVE/DEAD,81.9
+Au,16,sphere,30,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,250,48,LIVE/DEAD,71.7
+Au,16,sphere,30,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,500,48,LIVE/DEAD,59.2
+Au,16,sphere,30,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,1000,48,LIVE/DEAD,60.2
+Au,16,sphere,30,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,60,72,LIVE/DEAD,94.9
+Au,16,sphere,30,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,125,72,LIVE/DEAD,90.1
+Au,16,sphere,30,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,250,72,LIVE/DEAD,78.8
+Au,16,sphere,30,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,500,72,LIVE/DEAD,55.6
+Au,16,sphere,30,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,1000,72,LIVE/DEAD,58.7
+Au,21,sphere,45,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,60,24,LIVE/DEAD,88.2
+Au,21,sphere,45,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,125,24,LIVE/DEAD,75.5
+Au,21,sphere,45,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,250,24,LIVE/DEAD,72.6
+Au,21,sphere,45,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,500,24,LIVE/DEAD,67.4
+Au,21,sphere,45,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,1000,24,LIVE/DEAD,74.1
+Au,21,sphere,45,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,60,48,LIVE/DEAD,86.7
+Au,21,sphere,45,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,125,48,LIVE/DEAD,77.9
+Au,21,sphere,45,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,250,48,LIVE/DEAD,62.1
+Au,21,sphere,45,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,500,48,LIVE/DEAD,62.3
+Au,21,sphere,45,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,1000,48,LIVE/DEAD,66.4
+Au,21,sphere,45,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,60,72,LIVE/DEAD,92.2
+Au,21,sphere,45,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,125,72,LIVE/DEAD,83.4
+Au,21,sphere,45,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,250,72,LIVE/DEAD,75.3
+Au,21,sphere,45,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,500,72,LIVE/DEAD,56.6
+Au,21,sphere,45,biological,extract,150,65,4.5,100,water,phytochemicals,primary,HDF,1000,72,LIVE/DEAD,64.2
+Ag,12,sphere,,chemical,polysaccharide,240,60,10,5,water,phytochemicals,primary,HaCaT,0.5,24,MTS,97.62
+Ag,12,sphere,,chemical,polysaccharide,240,60,10,5,water,phytochemicals,primary,HaCaT,0.8,24,MTS,93.98
+Ag,12,sphere,,chemical,polysaccharide,240,60,10,5,water,phytochemicals,primary,HaCaT,1.85,24,MTS,85.68
+Ag,12,sphere,,chemical,polysaccharide,240,60,10,5,water,phytochemicals,primary,HaCaT,4.63,24,MTS,82.39
+Ag,12,sphere,,chemical,polysaccharide,240,60,10,5,water,phytochemicals,primary,HaCaT,7.3,24,MTS,76.01
+Ag,12,sphere,,chemical,polysaccharide,240,60,10,5,water,phytochemicals,primary,HaCaT,10,24,MTS,71
+Ag,12,sphere,,chemical,polysaccharide,240,60,10,5,water,phytochemicals,primary,HaCaT,37.16,24,MTS,65.8
+Ag,12,sphere,,chemical,polysaccharide,240,60,10,5,water,phytochemicals,primary,HaCaT,53.04,24,MTS,58.29
+Ag,12,sphere,,chemical,polysaccharide,240,60,10,5,water,phytochemicals,primary,HaCaT,73.61,24,MTS,50.19
+Ag,12,sphere,,chemical,polysaccharide,240,60,10,5,water,phytochemicals,primary,HaCaT,86.9,24,MTS,45.4

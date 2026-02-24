@@ -1,0 +1,21 @@
+material,size,shape,Zeta potential,reductant,Syn_time,Syn_temperature,pH,Precursor_C,cell_type,cell_line,Exposure_C,Exposure_time,Via_test,viability
+Au,29,sphere,-36.77,gallic acid,30,25,10,5,Immortalized,HaCaT,6.25,24,MTT,98.51
+Au,29,sphere,-36.77,gallic acid,30,25,10,5,Immortalized,HaCaT,12.5,24,MTT,94.06
+Au,29,sphere,-36.77,gallic acid,30,25,10,5,Immortalized,HaCaT,25,24,MTT,88.19
+Au,29,sphere,-36.77,gallic acid,30,25,10,5,Immortalized,HaCaT,50,24,MTT,83.33
+Ag,27,sphere,15.6,surfactant,120,25,11.8,100,Immortalized,HaCaT,6.25,24,MTT,82.39
+Ag,27,sphere,15.6,surfactant,120,25,11.8,100,Immortalized,HaCaT,12.5,24,MTT,75.87
+Ag,27,sphere,15.6,surfactant,120,25,11.8,100,Immortalized,HaCaT,25,24,MTT,62.25
+Ag,27,sphere,15.6,surfactant,120,25,11.8,100,Immortalized,HaCaT,50,24,MTT,56.93
+Ag,17.71,sphere,-16.9,gallic acid,180,28,5,10,Immortalized,HaCaT,6.25,24,MTT,99.33
+Ag,17.71,sphere,-16.9,gallic acid,180,28,5,10,Immortalized,HaCaT,12.5,24,MTT,97.23
+Ag,17.71,sphere,-16.9,gallic acid,180,28,5,10,Immortalized,HaCaT,25,24,MTT,93.58
+Ag,17.71,sphere,-16.9,gallic acid,180,28,5,10,Immortalized,HaCaT,50,24,MTT,80.46
+Ag,10.07,sphere,-35.9,chlorogenic acid,520,50,11,20,Immortalized,HaCaT,12.5,48,MTT,92.2
+Ag,10.07,sphere,-35.9,chlorogenic acid,520,50,11,20,Immortalized,HaCaT,25,48,MTT,86
+Ag,10.07,sphere,-35.9,chlorogenic acid,520,50,11,20,Immortalized,HaCaT,50,48,MTT,77.4
+Ag,10.07,sphere,-35.9,chlorogenic acid,520,50,11,20,Immortalized,HaCaT,100,48,MTT,65.8
+Ag,105,flower,-32.24,gallic acid,180,25,5.6,2.5,Immortalized,HaCaT,6.25,24,MTT,99.16
+Ag,105,flower,-32.24,gallic acid,180,25,5.6,2.5,Immortalized,HaCaT,12.5,24,MTT,97.97
+Ag,105,flower,-32.24,gallic acid,180,25,5.6,2.5,Immortalized,HaCaT,25,24,MTT,96.64
+Ag,105,flower,-32.24,gallic acid,180,25,5.6,2.5,Immortalized,HaCaT,50,24,MTT,82.3
