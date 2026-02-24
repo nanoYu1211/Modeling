@@ -1,0 +1,151 @@
+library(dplyr)
+library(caret)
+library(e1071)  
+library(ggplot2)
+
+data <- read.csv("code.Public database data.csv")
+
+X <- data %>% select(-viability) 
+Y <- data$viability 
+
+preprocess_params <- preProcess(X, method = c("center", "scale"))
+X <- predict(preprocess_params, X)
+
+set.seed(258)
+
+train_index <- createDataPartition(Y, p = 0.8, list = FALSE)
+X_train <- X[train_index, ]
+Y_train <- Y[train_index]
+X_test <- X[-train_index, ]
+Y_test <- Y[-train_index]
+
+
+ctrl <- trainControl(
+  method = "cv",  
+  number = 5,    
+  savePredictions = TRUE,  
+  summaryFunction = defaultSummary 
+)
+
+svm_model <- train(
+  x = X_train, 
+  y = Y_train,  
+  method = "svmRadial", 
+  trControl = ctrl,  
+  tuneLength = 5,  
+  metric = "RMSE" 
+)
+
+print(svm_model)
+
+cv_metrics <- svm_model$resample
+cat("\n五折交叉验证评估指标：\n")
+print(cv_metrics)
+
+avg_cv_metrics <- colMeans(cv_metrics[, c("RMSE", "Rsquared", "MAE")])
+cat("\n五折交叉验证平均评估指标：\n")
+print(avg_cv_metrics)
+
+train_predictions <- predict(svm_model, X_train)
+test_predictions <- predict(svm_model, X_test)
+
+calculate_metrics <- function(actual, predicted) {
+  r2 <- 1 - (sum((actual - predicted)^2) / sum((actual - mean(actual))^2))
+  rmse <- sqrt(mean((actual - predicted)^2))
+  mae <- mean(abs(actual - predicted))
+  return(list(r2 = r2, rmse = rmse, mae = mae))
+}
+
+train_metrics <- calculate_metrics(Y_train, train_predictions)
+test_metrics <- calculate_metrics(Y_test, test_predictions)
+
+cat("\n训练集评估指标：\n")
+cat("Train R2-score:", train_metrics$r2, "\n")
+cat("Train RMSE:", train_metrics$rmse, "\n")
+cat("Train MAE:", train_metrics$mae, "\n")
+cat("\n测试集评估指标：\n")
+cat("Test R2-score:", test_metrics$r2, "\n")
+cat("Test RMSE:", test_metrics$rmse, "\n")
+cat("Test MAE:", test_metrics$mae, "\n")
+
+metrics_df <- data.frame(
+  Metric = c("R2", "R2", "RMSE", "RMSE", "MAE", "MAE"),
+  Value = c(train_metrics$r2, test_metrics$r2, train_metrics$rmse, test_metrics$rmse, train_metrics$mae, test_metrics$mae),
+  Dataset = c("Train", "Test", "Train", "Test", "Train", "Test")
+)
+
+metrics_df$Metric <- factor(metrics_df$Metric, levels = c("R2", "RMSE", "MAE"))
+
+external_data <- read.csv("code.Lab generated data.csv")  
+
+X_external <- external_data %>% select(-viability) 
+Y_external <- external_data$viability 
+
+X_external <- predict(preprocess_params, X_external)
+
+external_predictions <- predict(svm_model, X_external)
+
+external_metrics <- calculate_metrics(Y_external, external_predictions)
+
+cat("\n外部验证集评估指标：\n")
+cat("External R2-score:", external_metrics$r2, "\n")
+cat("External RMSE:", external_metrics$rmse, "\n")
+cat("External MAE:", external_metrics$mae, "\n")
+
+external_results <- data.frame(Actual = Y_external, 
+                                 Predicted = external_predictions)
+
+train_plot <- ggplot(train_results, aes(x = Actual, y = Predicted)) +
+  geom_point(alpha = 0.8,color = "blue", size = 5) +
+  theme_minimal() +
+  theme(
+    panel.grid.major = element_blank(),  
+    panel.grid.minor = element_blank(), 
+    axis.line = element_line(color = "black"),  
+    axis.ticks = element_line(color = "black")
+  ) +
+  labs(x = "", y = "") +
+  ggtitle("")
+
+print(train_plot)
+ggsave("Via_SVM_train_predictions.tiff", plot = train_plot, width = 6, height = 5, dpi = 600)
+
+test_plot <- ggplot(test_results, aes(x = Actual, y = Predicted)) +
+  geom_point(alpha = 0.8,color = "#ff7f0e", size = 5) +
+  theme_minimal() +
+  theme(
+    panel.grid.major = element_blank(),  
+    panel.grid.minor = element_blank(),  
+    axis.line = element_line(color = "black"), 
+    axis.ticks = element_line(color = "black")  
+  ) +
+  labs(x = "", y = "") +
+  ggtitle("")
+
+print(test_plot)
+ggsave("Via_SVM_test_predictions.tiff", plot = test_plot, width = 6, height = 5, dpi = 600)
+
+external_plot <- ggplot(external_results, aes(x = Actual, y = Predicted)) +
+  geom_point(alpha = 0.8,color = "#235D3A", size = 8, shape = 17) +
+  theme_minimal() +
+  scale_x_continuous(
+    breaks = c(0, 30, 60, 90, 120),
+    limits = c(0, 120)  
+  ) +
+  scale_y_continuous(
+    breaks = c(0, 30, 60, 90, 120),
+    limits = c(0, 120) 
+  ) +
+  theme_minimal() +
+  expand_limits(x = 0, y = 0) + 
+  theme(
+    panel.grid.major = element_blank(), 
+    panel.grid.minor = element_blank(),  
+    axis.line = element_line(color = "black"), 
+    axis.ticks = element_line(color = "black") 
+  ) +
+  labs(x = "", y = "") +
+  ggtitle("")
+
+print(external_plot)
+ggsave("Via_SVM_external_validation.tiff", plot = external_plot, width = 6, height = 5, dpi = 600)
