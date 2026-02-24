@@ -1,0 +1,418 @@
+library(dplyr)
+library(caret)
+library(lightgbm)
+library(ggplot2)
+library(randomForest)
+
+data <- read.csv("code.Public database data.csv")
+
+X <- data %>% select(-viability) 
+Y <- data$viability 
+
+set.seed(258)
+
+train_index <- createDataPartition(Y, p = 0.8, list = FALSE)
+X_train <- X[train_index, ]
+Y_train <- Y[train_index]
+X_test <- X[-train_index, ]
+Y_test <- Y[-train_index]
+
+params <- list(
+  objective = "regression",
+  metric = "rmse",
+  learning_rate = 0.05,
+  max_depth = 10,
+  reg_alpha = 0.1,               
+  reg_lambda = 0.2,              
+  num_leaves = 45,
+  feature_fraction = 0.7,
+  subsample = 0.8,
+  n_estimators = 800
+)
+
+lgb_train <- lgb.Dataset(as.matrix(X_train), label = Y_train)
+lgb_test <- lgb.Dataset(as.matrix(X_test), label = Y_test)
+
+model <- lgb.train(
+  params,
+  lgb_train,
+  valids = list(test = lgb_test), 
+  early_stopping_rounds = 50
+)
+
+library(pdp)
+#---------------------------Zeta-----PDP与ICE----------------------
+pdp_result <- pdp::partial(
+  model, 
+  pred.var = "Zeta", 
+  train = as.matrix(X_train), 
+  ice = TRUE 
+)
+
+
+ice_ids <- unique(pdp_result$yhat.id)
+ice_max_values <- pdp_result %>%
+  group_by(yhat.id) %>%
+  summarise(max_yhat = max(yhat, na.rm = TRUE))
+valid_ice_ids <- ice_max_values %>% 
+  filter(max_yhat <= 150) %>% 
+  pull(yhat.id)
+pdp_result_filtered <- pdp_result %>% 
+  filter(yhat.id %in% valid_ice_ids)
+
+pdp_plot <- ggplot(pdp_result_filtered, aes(x = Zeta, y = yhat)) +
+  geom_line(aes(group = interaction(yhat.id), color = "ICE"), alpha = 0.2) +  
+  geom_line(stat = "summary", fun = mean, aes(color = "PDP"), size = 1.2) +  
+  labs(
+    x = "Zeat potential",  
+    y = "Predicted viability", 
+    title = ""
+  ) +
+  scale_color_manual(
+    name = "Legend", 
+    values = c("PDP" = "#fbb102", "ICE" = "#1c3885") 
+  ) +
+  scale_y_continuous(breaks = c(0, 25, 50, 75, 100, 125)) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Arial", face = "bold"), 
+    panel.grid = element_blank(), 
+    panel.border = element_rect(color = "black", fill = NA, size = 1), 
+    plot.background = element_rect(fill = "white"), 
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(face = "bold"),
+    axis.ticks = element_line(color = "black", size = 0.5),
+    axis.ticks.length = unit(0.15, "cm")
+  )
+
+
+print(pdp_plot)
+ggsave("zeta_pdp_ice_plot.tiff", plot = pdp_plot, width = 8, height = 6, dpi = 600)
+
+#----------------------------size---------------
+pdp_result <- pdp::partial(
+  model, 
+  pred.var = "size",  
+  train = as.matrix(X_train), 
+  ice = TRUE  
+)
+
+ice_ids <- unique(pdp_result$yhat.id)
+ice_max_values <- pdp_result %>%
+  group_by(yhat.id) %>%
+  summarise(max_yhat = max(yhat, na.rm = TRUE))
+valid_ice_ids <- ice_max_values %>% 
+  filter(max_yhat <= 150) %>% 
+  pull(yhat.id)
+pdp_result_filtered <- pdp_result %>% 
+  filter(yhat.id %in% valid_ice_ids)
+
+pdp_plot <- ggplot(pdp_result_filtered, aes(x = size, y = yhat)) +
+  geom_line(aes(group = interaction(yhat.id), color = "ICE"), alpha = 0.2) + 
+  geom_line(stat = "summary", fun = mean, aes(color = "PDP"), size = 1.2) +
+  labs(
+    x = "size",  
+    y = "Predicted viability",  
+    title = ""
+  ) +
+  scale_color_manual(
+    name = "Legend",  
+    values = c("PDP" = "#fbb102", "ICE" = "#1c3885")  
+  ) +
+  scale_y_continuous(breaks = c(0, 25, 50, 75, 100, 125)) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Arial", face = "bold"),  
+    panel.grid = element_blank(), 
+    panel.border = element_rect(color = "black", fill = NA, size = 1), 
+    plot.background = element_rect(fill = "white"), 
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(face = "bold"),
+    axis.ticks = element_line(color = "black", size = 0.5),
+    axis.ticks.length = unit(0.15, "cm")
+  )
+print(pdp_plot)
+ggsave("size_pdp_ice_plot.tiff", plot = pdp_plot, width = 8, height = 6, dpi = 600)
+
+#----------------------------Exposure_time---------------
+pdp_result <- pdp::partial(
+  model, 
+  pred.var = "Exposure_time",  
+  train = as.matrix(X_train), 
+  ice = TRUE 
+)
+
+ice_ids <- unique(pdp_result$yhat.id)
+ice_max_values <- pdp_result %>%
+  group_by(yhat.id) %>%
+  summarise(max_yhat = max(yhat, na.rm = TRUE))
+valid_ice_ids <- ice_max_values %>% 
+  filter(max_yhat <= 150) %>% 
+  pull(yhat.id)
+pdp_result_filtered <- pdp_result %>% 
+  filter(yhat.id %in% valid_ice_ids)
+
+pdp_plot <- ggplot(pdp_result_filtered, aes(x = Exposure_time, y = yhat)) +
+  geom_line(aes(group = interaction(yhat.id), color = "ICE"), alpha = 0.2) + 
+  geom_line(stat = "summary", fun = mean, aes(color = "PDP"), size = 1.2) +  
+  labs(
+    x = "Exposure_time", 
+    y = "Predicted viability",  
+    title = ""
+  ) +
+  scale_color_manual(
+    name = "Legend",  
+    values = c("PDP" = "#fbb102", "ICE" = "#1c3885") 
+  ) +
+  scale_y_continuous(breaks = c(0, 25, 50, 75, 100, 125)) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Arial", face = "bold"),  
+    panel.grid = element_blank(),  
+    panel.border = element_rect(color = "black", fill = NA, size = 1), 
+    plot.background = element_rect(fill = "white"), 
+    axis.title = element_text(face = "bold"), 
+    axis.text = element_text(face = "bold"),
+    axis.ticks = element_line(color = "black", size = 0.5),
+    axis.ticks.length = unit(0.15, "cm")
+  )
+
+
+print(pdp_plot)
+ggsave("Exposure_time_pdp_ice_plot.tiff", plot = pdp_plot, width = 8, height = 6, dpi = 600)
+
+#----------------------------Exposure_C---------------
+pdp_result <- pdp::partial(
+  model, 
+  pred.var = "Exposure_C",  
+  train = as.matrix(X_train), 
+  ice = TRUE  
+)
+ice_ids <- unique(pdp_result$yhat.id)
+ice_max_values <- pdp_result %>%
+  group_by(yhat.id) %>%
+  summarise(max_yhat = max(yhat, na.rm = TRUE))
+valid_ice_ids <- ice_max_values %>% 
+  filter(max_yhat <= 150) %>% 
+  pull(yhat.id)
+pdp_result_filtered <- pdp_result %>% 
+  filter(yhat.id %in% valid_ice_ids)
+pdp_plot <- ggplot(pdp_result_filtered, aes(x = Exposure_C, y = yhat)) +
+  geom_line(aes(group = interaction(yhat.id), color = "ICE"), alpha = 0.2) + 
+  geom_line(stat = "summary", fun = mean, aes(color = "PDP"), size = 1.2) +   
+  labs(
+    x = "Exposure_C", 
+    y = "Predicted viability",  
+    title = ""
+  ) +
+  scale_color_manual(
+    name = "Legend", 
+    values = c("PDP" = "#fbb102", "ICE" = "#1c3885") 
+  ) +
+  coord_cartesian(xlim = c(0, 2000)) + 
+  scale_y_continuous(breaks = c(0, 25, 50, 75, 100, 125)) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Arial", face = "bold"),  
+    panel.grid = element_blank(), 
+    panel.border = element_rect(color = "black", fill = NA, size = 1), 
+    plot.background = element_rect(fill = "white"), 
+    axis.title = element_text(face = "bold"), 
+    axis.text = element_text(face = "bold"),
+    axis.ticks = element_line(color = "black", size = 0.5),
+    axis.ticks.length = unit(0.15, "cm")
+  )
+
+print(pdp_plot)
+ggsave("exposure_C_pdp_ice_plot.tiff", plot = pdp_plot, width = 8, height = 6, dpi = 600)
+
+#----------------------------precursor_C---------------
+pdp_result <- pdp::partial(
+  model, 
+  pred.var = "precursor_C", 
+  train = as.matrix(X_train), 
+  ice = TRUE 
+)
+
+ice_ids <- unique(pdp_result$yhat.id)
+ice_max_values <- pdp_result %>%
+  group_by(yhat.id) %>%
+  summarise(max_yhat = max(yhat, na.rm = TRUE))
+valid_ice_ids <- ice_max_values %>% 
+  filter(max_yhat <= 150) %>% 
+  pull(yhat.id)
+pdp_result_filtered <- pdp_result %>% 
+  filter(yhat.id %in% valid_ice_ids)
+
+pdp_plot <- ggplot(pdp_result_filtered, aes(x = precursor_C, y = yhat)) +
+  geom_line(aes(group = interaction(yhat.id), color = "ICE"), alpha = 0.2) +  
+  geom_line(stat = "summary", fun = mean, aes(color = "PDP"), size = 1.2) +   
+  labs(
+    x = "Precursor Carbon Content", 
+    y = "Predicted Viability",      
+    title = "" 
+  ) +
+  scale_color_manual(
+    name = "Legend",
+    values = c("PDP" = "#fbb102", "ICE" = "#1c3885")
+  ) +
+  coord_cartesian(xlim = c(0, 50)) +  
+  scale_y_continuous(breaks = c(0, 25, 50, 75, 100, 125)) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Arial", face = "bold"),
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),
+    plot.background = element_rect(fill = "white"),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(face = "bold"),
+    axis.ticks = element_line(color = "black", size = 0.5),
+    axis.ticks.length = unit(0.15, "cm")
+  )
+
+
+print(pdp_plot)
+ggsave("precursor_C_pdp_ice_plot.tiff", plot = pdp_plot, width = 8, height = 6, dpi = 600)
+
+#----------------------------Syn_time---------------
+pdp_result <- pdp::partial(
+  model, 
+  pred.var = "Syn_time", 
+  train = as.matrix(X_train),
+  ice = TRUE  
+)
+
+ice_ids <- unique(pdp_result$yhat.id)
+ice_max_values <- pdp_result %>%
+  group_by(yhat.id) %>%
+  summarise(max_yhat = max(yhat, na.rm = TRUE))
+valid_ice_ids <- ice_max_values %>% 
+  filter(max_yhat <= 150) %>% 
+  pull(yhat.id)
+pdp_result_filtered <- pdp_result %>% 
+  filter(yhat.id %in% valid_ice_ids)
+
+pdp_plot <- ggplot(pdp_result_filtered, aes(x = Syn_time, y = yhat)) +
+  geom_line(aes(group = interaction(yhat.id), color = "ICE"), alpha = 0.2) +  
+  geom_line(stat = "summary", fun = mean, aes(color = "PDP"), size = 1.2) +   
+  labs(
+    x = "Syn_time",  
+    y = "Predicted viability",
+    title = ""
+  ) +
+  scale_color_manual(
+    name = "Legend",  
+    values = c("PDP" = "#fbb102", "ICE" = "#1c3885") 
+  ) +
+  coord_cartesian(xlim = c(0, 2000)) +  
+  scale_y_continuous(breaks = c(0, 25, 50, 75, 100, 125)) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Arial", face = "bold"),  
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, size = 1),  
+    plot.background = element_rect(fill = "white"), 
+    axis.title = element_text(face = "bold"), 
+    axis.text = element_text(face = "bold"),
+    axis.ticks = element_line(color = "black", size = 0.5),
+    axis.ticks.length = unit(0.15, "cm")
+  )
+
+print(pdp_plot)
+ggsave("syn_time_pdp_ice_plot.tiff", plot = pdp_plot, width = 8, height = 6, dpi = 600)
+
+#----------------------------pH---------------
+pdp_result <- pdp::partial(
+  model, 
+  pred.var = "pH", 
+  train = as.matrix(X_train),
+  ice = TRUE 
+)
+
+ice_ids <- unique(pdp_result$yhat.id)
+ice_max_values <- pdp_result %>%
+  group_by(yhat.id) %>%
+  summarise(max_yhat = max(yhat, na.rm = TRUE))
+valid_ice_ids <- ice_max_values %>% 
+  filter(max_yhat <= 150) %>% 
+  pull(yhat.id)
+pdp_result_filtered <- pdp_result %>% 
+  filter(yhat.id %in% valid_ice_ids)
+
+pdp_plot <- ggplot(pdp_result_filtered, aes(x = pH, y = yhat)) +
+  geom_line(aes(group = interaction(yhat.id), color = "ICE"), alpha = 0.2) +  
+  geom_line(stat = "summary", fun = mean, aes(color = "PDP"), size = 1.2) +  
+  labs(
+    x = "pH", 
+    y = "Predicted viability", 
+    title = ""
+  ) +
+  scale_color_manual(
+    name = "Legend", 
+    values = c("PDP" = "#fbb102", "ICE" = "#1c3885")  
+  ) +
+  coord_cartesian(xlim = c(2.8, 12.1)) +  
+  scale_y_continuous(breaks = c(0, 25, 50, 75, 100, 125)) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Arial", face = "bold"),  
+    panel.grid = element_blank(), 
+    panel.border = element_rect(color = "black", fill = NA, size = 1), 
+    plot.background = element_rect(fill = "white"), 
+    axis.title = element_text(face = "bold"),  
+    axis.text = element_text(face = "bold"),
+    axis.ticks = element_line(color = "black", size = 0.5),
+    axis.ticks.length = unit(0.15, "cm")
+  )
+
+
+print(pdp_plot)
+ggsave("ph_pdp_ice_plot.tiff", plot = pdp_plot, width = 8, height = 6, dpi = 600)
+
+#----------------------------Syn_temperature---------------
+pdp_result <- pdp::partial(
+  model, 
+  pred.var = "Syn_temperature",  
+  train = as.matrix(X_train), 
+  ice = TRUE  
+)
+
+ice_ids <- unique(pdp_result$yhat.id)
+ice_max_values <- pdp_result %>%
+  group_by(yhat.id) %>%
+  summarise(max_yhat = max(yhat, na.rm = TRUE))
+valid_ice_ids <- ice_max_values %>% 
+  filter(max_yhat <= 150) %>% 
+  pull(yhat.id)
+pdp_result_filtered <- pdp_result %>% 
+  filter(yhat.id %in% valid_ice_ids)
+
+pdp_plot <- ggplot(pdp_result_filtered, aes(x = Syn_temperature, y = yhat)) +
+  geom_line(aes(group = interaction(yhat.id), color = "ICE"), alpha = 0.2) +  
+  geom_line(stat = "summary", fun = mean, aes(color = "PDP"), size = 1.2) + 
+  labs(
+    x = "Syn_temperature", 
+    y = "Predicted viability",
+    title = ""
+  ) +
+  scale_color_manual(
+    name = "Legend", 
+    values = c("PDP" = "#fbb102", "ICE" = "#1c3885")  #
+  ) +
+  coord_cartesian(xlim = c(-10, 130)) +
+  scale_y_continuous(breaks = c(0, 25, 50, 75, 100, 125)) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Arial", face = "bold"), 
+    panel.grid = element_blank(),  
+    panel.border = element_rect(color = "black", fill = NA, size = 1), 
+    plot.background = element_rect(fill = "white"),  
+    axis.title = element_text(face = "bold"), 
+    axis.text = element_text(face = "bold"),
+    axis.ticks = element_line(color = "black", size = 0.5),
+    axis.ticks.length = unit(0.15, "cm")
+  )
+
+print(pdp_plot)
+ggsave("Syn_temperature_pdp_ice_plot.tiff", plot = pdp_plot, width = 8, height = 6, dpi = 600)
+
