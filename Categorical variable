@@ -1,134 +1,139 @@
-library(dplyr)
 library(caret)
-library(lightgbm)
-library(ggplot2)
 library(randomForest)
+library(dplyr)
+library(glmnet)
 library(ggbeeswarm)
 library(viridis)
 library(readr)
+library(ggplot2)
 
 data <- read.csv("code.Public database data.csv")
 
-X <- data %>% select(-viability)
-Y <- data$viability
+data <- data %>%
+  mutate(
+    group_id = paste(material, shape, cell_line, Via_test, Exposure_time, sep = "_")
+  )
+
+X <- data %>% select(-viability, -group_id)  
+Y <- data$viability  
+
+X_raw <- X
+
+sum(is.na(Y))  
+sum(is.na(X)) 
+str(X)         
+
+preprocess_params <- preProcess(X, method = c("center", "scale"))
+X <- predict(preprocess_params, X)
 
 set.seed(258)
 
-train_index <- createDataPartition(Y, p = 0.8, list = FALSE)
+unique_groups <- unique(data$group_id)
+train_groups <- sample(unique_groups, size = floor(0.8 * length(unique_groups)))
+
+train_index <- which(data$group_id %in% train_groups)
+test_index <- which(!(data$group_id %in% train_groups))
+
 X_train <- X[train_index, ]
 Y_train <- Y[train_index]
-X_test <- X[-train_index, ]
-Y_test <- Y[-train_index]
+X_test <- X[test_index, ]
+Y_test <- Y[test_index]
 
-params <- list(
-  objective = "regression",
-  metric = "rmse",
-  learning_rate = 0.05,
-  max_depth = 10,
-  reg_alpha = 0.1,
-  reg_lambda = 0.2,
-  num_leaves = 45,
-  feature_fraction = 0.7,
-  subsample = 0.8,
-  n_estimators = 800
+X_train_raw <- X_raw[train_index, ]
+X_test_raw <- X_raw[test_index, ]
+
+ctrl <- trainControl(
+  method = "cv", 
+  number = 5,   
+  savePredictions = TRUE, 
+  summaryFunction = defaultSummary  
 )
 
-calculate_metrics <- function(actual, predicted) {
-  r2 <- 1 - (sum((actual - predicted)^2) / sum((actual - mean(actual))^2))
-  rmse <- sqrt(mean((actual - predicted)^2))
-  mae <- mean(abs(actual - predicted))
-  return(list(R2 = r2, RMSE = rmse, MAE = mae))
-}
+tune_grid <- expand.grid(mtry = c(2, 4, 6, 8, 10)) 
 
 set.seed(258)
-folds <- createFolds(Y_train, k = 5)
-cv_results <- data.frame(
-  Fold = integer(),
-  R2 = numeric(),
-  RMSE = numeric(),
-  MAE = numeric()
+rf_model <- train(
+  x = X_train,  
+  y = Y_train,  
+  method = "rf",  
+  trControl = ctrl,  
+  tuneGrid = tune_grid, 
+  metric = "RMSE",  
+  ntree = 800,  
+  nodesize = 15,  
+  maxnodes = 20, 
 )
 
-for (i in 1:5) {
-  val_index <- folds[[i]]
-  X_train_fold <- X_train[-val_index, ]
-  Y_train_fold <- Y_train[-val_index]
-  X_val_fold <- X_train[val_index, ]
-  Y_val_fold <- Y_train[val_index]
-  
-  lgb_train_fold <- lgb.Dataset(as.matrix(X_train_fold), label = Y_train_fold, free_raw_data = FALSE)
-  lgb_val_fold <- lgb.Dataset(as.matrix(X_val_fold), label = Y_val_fold, free_raw_data = FALSE)
-  
-  model_fold <- lgb.train(
-    params,
-    lgb_train_fold,
-    valids = list(valid = lgb_val_fold),
-    early_stopping_rounds = 50
-  )
-  
-  val_predictions <- predict(model_fold, as.matrix(X_val_fold))
-  metrics <- calculate_metrics(Y_val_fold, val_predictions)
-  
-  cv_results <- rbind(cv_results, data.frame(
-    Fold = i,
-    R2 = metrics$R2,
-    RMSE = metrics$RMSE,
-    MAE = metrics$MAE
-  ))
+print(rf_model)
+
+cv_metrics <- rf_model$resample
+cat("\n五折交叉验证评估指标：\n")
+print(cv_metrics)
+
+avg_cv_metrics <- colMeans(cv_metrics[, c("RMSE", "Rsquared", "MAE")])
+cat("\n五折交叉验证平均评估指标：\n")
+print(avg_cv_metrics)
+
+train_predictions <- predict(rf_model, X_train)
+test_predictions <- predict(rf_model, X_test)
+
+calculate_metrics <- function(actual, predicted) {
+  r2_score <- 1 - (sum((actual - predicted)^2) / sum((actual - mean(actual))^2))
+  rmse_score <- sqrt(mean((actual - predicted)^2))
+  mae_score <- mean(abs(actual - predicted))
+  return(list(R2 = r2_score, RMSE = rmse_score, MAE = mae_score))
 }
-
-print(cv_results)
-
-cv_avg_metrics <- cv_results %>%
-  summarise(
-    Avg_R2 = mean(R2),
-    Avg_RMSE = mean(RMSE),
-    Avg_MAE = mean(MAE)
-  )
-
-cat("Cross-Validation Average R2-score:", cv_avg_metrics$Avg_R2, "\n")
-cat("Cross-Validation Average RMSE:", cv_avg_metrics$Avg_RMSE, "\n")
-cat("Cross-Validation Average MAE:", cv_avg_metrics$Avg_MAE, "\n")
-
-lgb_train_full <- lgb.Dataset(as.matrix(X_train), label = Y_train, free_raw_data = FALSE)
-final_model <- lgb.train(params, lgb_train_full)
-
-train_predictions <- predict(final_model, as.matrix(X_train))
-test_predictions <- predict(final_model, as.matrix(X_test))
 
 train_metrics <- calculate_metrics(Y_train, train_predictions)
 test_metrics <- calculate_metrics(Y_test, test_predictions)
 
+cat("\n训练集评估指标：\n")
 cat("Train R2-score:", train_metrics$R2, "\n")
 cat("Train RMSE:", train_metrics$RMSE, "\n")
 cat("Train MAE:", train_metrics$MAE, "\n")
+cat("\n测试集评估指标：\n")
 cat("Test R2-score:", test_metrics$R2, "\n")
 cat("Test RMSE:", test_metrics$RMSE, "\n")
 cat("Test MAE:", test_metrics$MAE, "\n")
 
-if (!require("SHAPforxgboost")) install.packages("SHAPforxgboost")
-library(SHAPforxgboost)
 
-X_all <- rbind(X_train, X_test)
-X_matrix <- as.matrix(X_all)
-storage.mode(X_matrix) <- "double"
+if (!require("fastshap")) install.packages("fastshap")
+library(fastshap)
 
-shap_matrix <- predict(final_model, X_matrix, type = "contrib")
-baseline <- shap_matrix[, ncol(shap_matrix)]
-shap_values <- shap_matrix[, -ncol(shap_matrix)]
+rf_model_obj <- rf_model$finalModel
 
-material_values <- data$material
+X_all_raw <- rbind(X_train_raw, X_test_raw)
+X_all_matrix <- as.matrix(X_all_raw)
+
+Y_all <- c(Y_train, Y_test)
+
+all_data_indices <- c(train_index, test_index)
+pred_fun <- function(object, newdata) {
+  newdata_scaled <- predict(preprocess_params, newdata)
+  predict(object, newdata_scaled)
+}
+
+set.seed(258)
+bg_indices <- sample(1:nrow(X_train_raw), size = min(100, nrow(X_train_raw)))
+shap_values <- fastshap::explain(
+  rf_model_obj,
+  X = X_all_matrix,
+  pred_wrapper = pred_fun,
+  nsim = 50,
+  adjust = TRUE,
+  background_data = X_train_raw[bg_indices, ]
+)
+material_values <- data$material[all_data_indices]
 material_factor <- as.factor(material_values)
-material_levels <- levels(material_factor)
 
-material_index <- which(colnames(X_all) == "material")
+material_index <- which(colnames(X_all_raw) == "material")
 if (length(material_index) > 0) {
   material_shap <- shap_values[, material_index]
   
   material_shap_df <- data.frame(
     Material = material_factor,
     Material_SHAP = material_shap,
-    Viability = Y,
+    Viability = Y_all,
     RowIndex = 1:length(material_factor)
   )
   
@@ -143,7 +148,7 @@ if (length(material_index) > 0) {
     geom_hline(yintercept = 0, linetype = "dashed", color = "red", linewidth = 0.8) +
     scale_fill_viridis(discrete = TRUE, option = "D") +
     labs(
-      title = "SHAP Contribution Distribution by Material",
+      title = "Random Forest - SHAP Contribution Distribution by Material",
       subtitle = "SHAP values represent material contribution to viability prediction",
       x = "Material",
       y = "SHAP Value",
@@ -160,7 +165,7 @@ if (length(material_index) > 0) {
   
   print(p_combined)
   
-  ggsave("Material_SHAP_Boxplot_Beeswarm_Combined.tiff", 
+  ggsave("RF_Material_SHAP_Boxplot_Beeswarm_Combined.tiff", 
          p_combined, 
          width = 3.3, 
          height = 6, 
@@ -170,7 +175,7 @@ if (length(material_index) > 0) {
   clean_filename <- function(name) {
     gsub("[^a-zA-Z0-9_.-]", "_", name)
   }
-  data_filename <- clean_filename("Material_SHAP_Boxplot_Beeswarm_Data.csv")
+  data_filename <- clean_filename("RF_Material_SHAP_Boxplot_Beeswarm_Data.csv")
   
   export_data <- material_shap_df %>%
     mutate(across(everything(), ~ifelse(is.na(.), "NA", .)))
@@ -181,9 +186,9 @@ if (length(material_index) > 0) {
     na = "NA"
   )
   
-  cat("\n🎉 Material SHAP distribution data (boxplot + beeswarm) export completed!\n")
-  cat("📁 File save path:", save_path, "\n")
-  cat("📄 File name:", data_filename, "\n")
+  cat("\n Material SHAP distribution data (boxplot + beeswarm) export completed!\n")
+  cat(" File save path:", save_path, "\n")
+  cat(" File name:", data_filename, "\n")
   
   cat("\nMaterial SHAP analysis summary:\n")
   print(table(material_factor))
@@ -199,30 +204,20 @@ if (length(material_index) > 0) {
   
 } else {
   cat("Error: 'material' variable not found in dataset!\n")
-  cat("Available variables:", colnames(X_all), "\n")
+  cat("Available variables:", colnames(X_all_raw), "\n")
 }
 
-
-X_all <- rbind(X_train, X_test)
-X_matrix <- as.matrix(X_all)
-storage.mode(X_matrix) <- "double"
-
-shap_matrix <- predict(final_model, X_matrix, type = "contrib")
-baseline <- shap_matrix[, ncol(shap_matrix)]
-shap_values <- shap_matrix[, -ncol(shap_matrix)]
-
-shape_values <- data$shape
+shape_values <- data$shape[all_data_indices]
 shape_factor <- as.factor(shape_values)
-shape_levels <- levels(shape_factor)
 
-shape_index <- which(colnames(X_all) == "shape")
+shape_index <- which(colnames(X_all_raw) == "shape")
 if (length(shape_index) > 0) {
   shape_shap <- shap_values[, shape_index]
   
   shape_shap_df <- data.frame(
     Shape = shape_factor,
     Shape_SHAP = shape_shap,
-    Viability = Y,
+    Viability = Y_all,
     RowIndex = 1:length(shape_factor)
   )
   
@@ -237,7 +232,7 @@ if (length(shape_index) > 0) {
     geom_hline(yintercept = 0, linetype = "dashed", color = "red", linewidth = 0.8) +
     scale_fill_viridis(discrete = TRUE, option = "D") +
     labs(
-      title = "SHAP Contribution Distribution by Shape",
+      title = "Random Forest - SHAP Contribution Distribution by Shape",
       subtitle = "SHAP values represent shape contribution to viability prediction",
       x = "Shape",
       y = "SHAP Value",
@@ -254,7 +249,7 @@ if (length(shape_index) > 0) {
   
   print(p_combined)
   
-  ggsave("Shape_SHAP_Boxplot_Beeswarm_Combined.tiff", 
+  ggsave("RF_Shape_SHAP_Boxplot_Beeswarm_Combined.tiff", 
          p_combined, 
          width = 5.5, 
          height = 6, 
@@ -264,7 +259,7 @@ if (length(shape_index) > 0) {
   clean_filename <- function(name) {
     gsub("[^a-zA-Z0-9_.-]", "_", name)
   }
-  data_filename <- clean_filename("Shape_SHAP_Boxplot_Beeswarm_Data.csv")
+  data_filename <- clean_filename("RF_Shape_SHAP_Boxplot_Beeswarm_Data.csv")
   
   export_data <- shape_shap_df %>%
     mutate(across(everything(), ~ifelse(is.na(.), "NA", .)))
@@ -275,9 +270,9 @@ if (length(shape_index) > 0) {
     na = "NA"
   )
   
-  cat("\n🎉 Shape SHAP distribution data (boxplot + beeswarm) export completed!\n")
-  cat("📁 File save path:", save_path, "\n")
-  cat("📄 File name:", data_filename, "\n")
+  cat("\n Shape SHAP distribution data (boxplot + beeswarm) export completed!\n")
+  cat(" File save path:", save_path, "\n")
+  cat(" File name:", data_filename, "\n")
   
   cat("\nShape SHAP analysis summary:\n")
   print(table(shape_factor))
@@ -293,31 +288,20 @@ if (length(shape_index) > 0) {
   
 } else {
   cat("Error: 'shape' variable not found in dataset!\n")
-  cat("Available variables:", colnames(X_all), "\n")
+  cat("Available variables:", colnames(X_all_raw), "\n")
 }
 
-
-
-X_all <- rbind(X_train, X_test)
-X_matrix <- as.matrix(X_all)
-storage.mode(X_matrix) <- "double"
-
-shap_matrix <- predict(final_model, X_matrix, type = "contrib")
-baseline <- shap_matrix[, ncol(shap_matrix)]
-shap_values <- shap_matrix[, -ncol(shap_matrix)]
-
-cell_type_values <- data$cell_type
+cell_type_values <- data$cell_type[all_data_indices]
 cell_type_factor <- as.factor(cell_type_values)
-cell_type_levels <- levels(cell_type_factor)
 
-cell_type_index <- which(colnames(X_all) == "cell_type")
+cell_type_index <- which(colnames(X_all_raw) == "cell_type")
 if (length(cell_type_index) > 0) {
   cell_type_shap <- shap_values[, cell_type_index]
   
   cell_type_shap_df <- data.frame(
     Cell_type = cell_type_factor,
     Cell_type_SHAP = cell_type_shap,
-    Viability = Y,
+    Viability = Y_all,
     RowIndex = 1:length(cell_type_factor)
   )
   
@@ -332,7 +316,7 @@ if (length(cell_type_index) > 0) {
     geom_hline(yintercept = 0, linetype = "dashed", color = "red", linewidth = 0.8) +
     scale_fill_viridis(discrete = TRUE, option = "D") +
     labs(
-      title = "SHAP Contribution Distribution by Cell Type",
+      title = "Random Forest - SHAP Contribution Distribution by Cell Type",
       subtitle = "SHAP values represent cell type contribution to viability prediction",
       x = "Cell Type",
       y = "SHAP Value",
@@ -349,9 +333,9 @@ if (length(cell_type_index) > 0) {
   
   print(p_combined)
   
-  ggsave("Cell_type_SHAP_Boxplot_Beeswarm_Combined.tiff", 
+  ggsave("RF_Cell_type_SHAP_Boxplot_Beeswarm_Combined.tiff", 
          p_combined, 
-         width = 2, 
+         width = 3.3, 
          height = 6, 
          dpi = 600)
   
@@ -359,7 +343,7 @@ if (length(cell_type_index) > 0) {
   clean_filename <- function(name) {
     gsub("[^a-zA-Z0-9_.-]", "_", name)
   }
-  data_filename <- clean_filename("Cell_type_SHAP_Boxplot_Beeswarm_Data.csv")
+  data_filename <- clean_filename("RF_Cell_type_SHAP_Boxplot_Beeswarm_Data.csv")
   
   export_data <- cell_type_shap_df %>%
     mutate(across(everything(), ~ifelse(is.na(.), "NA", .)))
@@ -370,9 +354,9 @@ if (length(cell_type_index) > 0) {
     na = "NA"
   )
   
-  cat("\n🎉 Cell type SHAP distribution data (boxplot + beeswarm) export completed!\n")
-  cat("📁 File save path:", save_path, "\n")
-  cat("📄 File name:", data_filename, "\n")
+  cat("\n Cell type SHAP distribution data (boxplot + beeswarm) export completed!\n")
+  cat(" File save path:", save_path, "\n")
+  cat(" File name:", data_filename, "\n")
   
   cat("\nCell type SHAP analysis summary:\n")
   print(table(cell_type_factor))
@@ -388,30 +372,20 @@ if (length(cell_type_index) > 0) {
   
 } else {
   cat("Error: 'cell_type' variable not found in dataset!\n")
-  cat("Available variables:", colnames(X_all), "\n")
+  cat("Available variables:", colnames(X_all_raw), "\n")
 }
 
-
-X_all <- rbind(X_train, X_test)
-X_matrix <- as.matrix(X_all)
-storage.mode(X_matrix) <- "double"
-
-shap_matrix <- predict(final_model, X_matrix, type = "contrib")
-baseline <- shap_matrix[, ncol(shap_matrix)]
-shap_values <- shap_matrix[, -ncol(shap_matrix)]
-
-reductant_values <- data$reductant
+reductant_values <- data$reductant[all_data_indices]
 reductant_factor <- as.factor(reductant_values)
-reductant_levels <- levels(reductant_factor)
 
-reductant_index <- which(colnames(X_all) == "reductant")
+reductant_index <- which(colnames(X_all_raw) == "reductant")
 if (length(reductant_index) > 0) {
   reductant_shap <- shap_values[, reductant_index]
   
   reductant_shap_df <- data.frame(
     Reductant = reductant_factor,
     Reductant_SHAP = reductant_shap,
-    Viability = Y,
+    Viability = Y_all,
     RowIndex = 1:length(reductant_factor)
   )
   
@@ -426,7 +400,7 @@ if (length(reductant_index) > 0) {
     geom_hline(yintercept = 0, linetype = "dashed", color = "red", linewidth = 0.8) +
     scale_fill_viridis(discrete = TRUE, option = "D") +
     labs(
-      title = "SHAP Contribution Distribution by Reductant",
+      title = "Random Forest - SHAP Contribution Distribution by Reductant",
       subtitle = "SHAP values represent reductant contribution to viability prediction",
       x = "Reductant",
       y = "SHAP Value",
@@ -443,7 +417,7 @@ if (length(reductant_index) > 0) {
   
   print(p_combined)
   
-  ggsave("Reductant_SHAP_Boxplot_Beeswarm_Combined.tiff", 
+  ggsave("RF_Reductant_SHAP_Boxplot_Beeswarm_Combined.tiff", 
          p_combined, 
          width = 12, 
          height = 6, 
@@ -453,7 +427,7 @@ if (length(reductant_index) > 0) {
   clean_filename <- function(name) {
     gsub("[^a-zA-Z0-9_.-]", "_", name)
   }
-  data_filename <- clean_filename("Reductant_SHAP_Boxplot_Beeswarm_Data.csv")
+  data_filename <- clean_filename("RF_Reductant_SHAP_Boxplot_Beeswarm_Data.csv")
   
   export_data <- reductant_shap_df %>%
     mutate(across(everything(), ~ifelse(is.na(.), "NA", .)))
@@ -464,9 +438,9 @@ if (length(reductant_index) > 0) {
     na = "NA"
   )
   
-  cat("\n🎉 Reductant SHAP distribution data (boxplot + beeswarm) export completed!\n")
-  cat("📁 File save path:", save_path, "\n")
-  cat("📄 File name:", data_filename, "\n")
+  cat("\n Reductant SHAP distribution data (boxplot + beeswarm) export completed!\n")
+  cat(" File save path:", save_path, "\n")
+  cat(" File name:", data_filename, "\n")
   
   cat("\nReductant SHAP analysis summary:\n")
   print(table(reductant_factor))
@@ -482,32 +456,20 @@ if (length(reductant_index) > 0) {
   
 } else {
   cat("Error: 'reductant' variable not found in dataset!\n")
-  cat("Available variables:", colnames(X_all), "\n")
+  cat("Available variables:", colnames(X_all_raw), "\n")
 }
 
-
-
-
-X_all <- rbind(X_train, X_test)
-X_matrix <- as.matrix(X_all)
-storage.mode(X_matrix) <- "double"
-
-shap_matrix <- predict(final_model, X_matrix, type = "contrib")
-baseline <- shap_matrix[, ncol(shap_matrix)]
-shap_values <- shap_matrix[, -ncol(shap_matrix)]
-
-cell_line_values <- data$cell_line
+cell_line_values <- data$cell_line[all_data_indices]
 cell_line_factor <- as.factor(cell_line_values)
-cell_line_levels <- levels(cell_line_factor)
 
-cell_line_index <- which(colnames(X_all) == "cell_line")
+cell_line_index <- which(colnames(X_all_raw) == "cell_line")
 if (length(cell_line_index) > 0) {
   cell_line_shap <- shap_values[, cell_line_index]
   
   cell_line_shap_df <- data.frame(
     Cell_line = cell_line_factor,
     Cell_line_SHAP = cell_line_shap,
-    Viability = Y,
+    Viability = Y_all,
     RowIndex = 1:length(cell_line_factor)
   )
   
@@ -522,7 +484,7 @@ if (length(cell_line_index) > 0) {
     geom_hline(yintercept = 0, linetype = "dashed", color = "red", linewidth = 0.8) +
     scale_fill_viridis(discrete = TRUE, option = "D") +
     labs(
-      title = "SHAP Contribution Distribution by Cell Line",
+      title = "Random Forest - SHAP Contribution Distribution by Cell Line",
       subtitle = "SHAP values represent cell line contribution to viability prediction",
       x = "Cell Line",
       y = "SHAP Value",
@@ -539,7 +501,7 @@ if (length(cell_line_index) > 0) {
   
   print(p_combined)
   
-  ggsave("Cell_line_SHAP_Boxplot_Beeswarm_Combined.tiff", 
+  ggsave("RF_Cell_line_SHAP_Boxplot_Beeswarm_Combined.tiff", 
          p_combined, 
          width = 6, 
          height = 6, 
@@ -549,7 +511,7 @@ if (length(cell_line_index) > 0) {
   clean_filename <- function(name) {
     gsub("[^a-zA-Z0-9_.-]", "_", name)
   }
-  data_filename <- clean_filename("Cell_line_SHAP_Boxplot_Beeswarm_Data.csv")
+  data_filename <- clean_filename("RF_Cell_line_SHAP_Boxplot_Beeswarm_Data.csv")
   
   export_data <- cell_line_shap_df %>%
     mutate(across(everything(), ~ifelse(is.na(.), "NA", .)))
@@ -560,9 +522,9 @@ if (length(cell_line_index) > 0) {
     na = "NA"
   )
   
-  cat("\n🎉 Cell line SHAP distribution data (boxplot + beeswarm) export completed!\n")
-  cat("📁 File save path:", save_path, "\n")
-  cat("📄 File name:", data_filename, "\n")
+  cat("\n Cell line SHAP distribution data (boxplot + beeswarm) export completed!\n")
+  cat(" File save path:", save_path, "\n")
+  cat(" File name:", data_filename, "\n")
   
   cat("\nCell line SHAP analysis summary:\n")
   print(table(cell_line_factor))
@@ -578,31 +540,20 @@ if (length(cell_line_index) > 0) {
   
 } else {
   cat("Error: 'cell_line' variable not found in dataset!\n")
-  cat("Available variables:", colnames(X_all), "\n")
+  cat("Available variables:", colnames(X_all_raw), "\n")
 }
 
-
-
-X_all <- rbind(X_train, X_test)
-X_matrix <- as.matrix(X_all)
-storage.mode(X_matrix) <- "double"
-
-shap_matrix <- predict(final_model, X_matrix, type = "contrib")
-baseline <- shap_matrix[, ncol(shap_matrix)]
-shap_values <- shap_matrix[, -ncol(shap_matrix)]
-
-Via_test_values <- data$Via_test
+Via_test_values <- data$Via_test[all_data_indices]
 Via_test_factor <- as.factor(Via_test_values)
-Via_test_levels <- levels(Via_test_factor)
 
-Via_test_index <- which(colnames(X_all) == "Via_test")
+Via_test_index <- which(colnames(X_all_raw) == "Via_test")
 if (length(Via_test_index) > 0) {
   Via_test_shap <- shap_values[, Via_test_index]
   
   Via_test_shap_df <- data.frame(
     Via_test = Via_test_factor,
     Via_test_SHAP = Via_test_shap,
-    Viability = Y,
+    Viability = Y_all,
     RowIndex = 1:length(Via_test_factor)
   )
   
@@ -617,7 +568,7 @@ if (length(Via_test_index) > 0) {
     geom_hline(yintercept = 0, linetype = "dashed", color = "red", linewidth = 0.8) +
     scale_fill_viridis(discrete = TRUE, option = "D") +
     labs(
-      title = "SHAP Contribution Distribution by Via_test",
+      title = "Random Forest - SHAP Contribution Distribution by Via_test",
       subtitle = "SHAP values represent Via_test contribution to viability prediction",
       x = "Via_test",
       y = "SHAP Value",
@@ -634,7 +585,7 @@ if (length(Via_test_index) > 0) {
   
   print(p_combined)
   
-  ggsave("Via_test_SHAP_Boxplot_Beeswarm_Combined.tiff", 
+  ggsave("RF_Via_test_SHAP_Boxplot_Beeswarm_Combined.tiff", 
          p_combined, 
          width = 6, 
          height = 6, 
@@ -644,7 +595,7 @@ if (length(Via_test_index) > 0) {
   clean_filename <- function(name) {
     gsub("[^a-zA-Z0-9_.-]", "_", name)
   }
-  data_filename <- clean_filename("Via_test_SHAP_Boxplot_Beeswarm_Data.csv")
+  data_filename <- clean_filename("RF_Via_test_SHAP_Boxplot_Beeswarm_Data.csv")
   
   export_data <- Via_test_shap_df %>%
     mutate(across(everything(), ~ifelse(is.na(.), "NA", .)))
@@ -655,9 +606,9 @@ if (length(Via_test_index) > 0) {
     na = "NA"
   )
   
-  cat("\n🎉 Via_test SHAP distribution data (boxplot + beeswarm) export completed!\n")
-  cat("📁 File save path:", save_path, "\n")
-  cat("📄 File name:", data_filename, "\n")
+  cat("\n Via_test SHAP distribution data (boxplot + beeswarm) export completed!\n")
+  cat(" File save path:", save_path, "\n")
+  cat(" File name:", data_filename, "\n")
   
   cat("\nVia_test SHAP analysis summary:\n")
   print(table(Via_test_factor))
@@ -673,5 +624,6 @@ if (length(Via_test_index) > 0) {
   
 } else {
   cat("Error: 'Via_test' variable not found in dataset!\n")
-  cat("Available variables:", colnames(X_all), "\n")
+  cat("Available variables:", colnames(X_all_raw), "\n")
 }
+
