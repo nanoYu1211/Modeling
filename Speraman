@@ -26,7 +26,7 @@ ggcorrplot(
     axis.text.y = element_text(face = "bold"), 
     aspect.ratio = 1 
   ) +
-  scale_fill_gradient2(low = "#D73027", mid = "#FFFFFF", high = "#4575B4", midpoint = 0) 
+  scale_fill_gradient2(low = "#D73027", mid = "#FFFFFF", high = "#4575B4", midpoint = 0) # 图例配色
 
 print(last_plot())
 
@@ -45,5 +45,3 @@ ggsave(
   dpi = 300,
   bg = "white"
 )
-
-
