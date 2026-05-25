@@ -1,109 +1,128 @@
-library(dplyr)
-library(caret)
-library(lightgbm)
-library(ggplot2)
 library(randomForest)
-
+library(dplyr)
+library(glmnet) 
+library(ggplot2)
+library(caret) 
 data <- read.csv("code.Public database data.csv")
 
-X <- data %>% select(-viability) 
-Y <- data$viability 
+data <- data %>%
+  mutate(
+    group_id = paste(material, shape, cell_line, Via_test, Exposure_time, sep = "_")
+  )
+
+X <- data %>% select(-viability, -group_id)  
+Y <- data$viability  
+
+sum(is.na(Y))  
+sum(is.na(X)) 
+str(X)         
+
+preprocess_params <- preProcess(X, method = c("center", "scale"))
+X <- predict(preprocess_params, X)
 
 set.seed(258)
 
-train_index <- createDataPartition(Y, p = 0.8, list = FALSE)
+unique_groups <- unique(data$group_id)
+train_groups <- sample(unique_groups, size = floor(0.8 * length(unique_groups)))
+
+train_index <- which(data$group_id %in% train_groups)
+test_index <- which(!(data$group_id %in% train_groups))
+
 X_train <- X[train_index, ]
 Y_train <- Y[train_index]
-X_test <- X[-train_index, ]
-Y_test <- Y[-train_index]
+X_test <- X[test_index, ]
+Y_test <- Y[test_index]
 
-params <- list(
-  objective = "regression",
-  metric = "rmse",
-  learning_rate = 0.05,
-  max_depth = 10,
-  reg_alpha = 0.1,              
-  reg_lambda = 0.2,            
-  num_leaves = 45,
-  feature_fraction = 0.7,
-  subsample = 0.8,
-  n_estimators = 800
+ctrl <- trainControl(
+  method = "cv", 
+  number = 5,   
+  savePredictions = TRUE, 
+  summaryFunction = defaultSummary  
 )
 
-calculate_metrics <- function(actual, predicted) {
-  r2 <- 1 - (sum((actual - predicted)^2) / sum((actual - mean(actual))^2))
-  rmse <- sqrt(mean((actual - predicted)^2))
-  mae <- mean(abs(actual - predicted))
-  return(list(R2 = r2, RMSE = rmse, MAE = mae))
-}
+tune_grid <- expand.grid(mtry = c(2, 4, 6, 8, 10)) 
 
 set.seed(258)
-folds <- createFolds(Y_train, k = 5) 
-
-cv_results <- data.frame(
-  Fold = integer(),
-  R2 = numeric(),
-  RMSE = numeric(),
-  MAE = numeric()
+rf_model <- train(
+  x = X_train,  
+  y = Y_train,  
+  method = "rf",  
+  trControl = ctrl,  
+  tuneGrid = tune_grid, 
+  metric = "RMSE",  
+  ntree = 800,  
+  nodesize = 15,  
+  maxnodes = 20, 
 )
 
-for (i in 1:5) {
-  val_index <- folds[[i]]
-  X_train_fold <- X_train[-val_index, ]
-  Y_train_fold <- Y_train[-val_index]
-  X_val_fold <- X_train[val_index, ]
-  Y_val_fold <- Y_train[val_index]
-  
-  lgb_train_fold <- lgb.Dataset(as.matrix(X_train_fold), label = Y_train_fold, free_raw_data = FALSE)
-  lgb_val_fold <- lgb.Dataset(as.matrix(X_val_fold), label = Y_val_fold, free_raw_data = FALSE)
-  
-  model_fold <- lgb.train(
-    params,
-    lgb_train_fold,
-    valids = list(valid = lgb_val_fold),
-    early_stopping_rounds = 50 
-  )
-  
-  val_predictions <- predict(model_fold, as.matrix(X_val_fold))
-  
-  metrics <- calculate_metrics(Y_val_fold, val_predictions)
-  
-  cv_results <- rbind(cv_results, data.frame(
-    Fold = i,
-    R2 = metrics$R2,
-    RMSE = metrics$RMSE,
-    MAE = metrics$MAE
-  ))
+print(rf_model)
+
+cv_metrics <- rf_model$resample
+cat("\n五折交叉验证评估指标：\n")
+print(cv_metrics)
+
+avg_cv_metrics <- colMeans(cv_metrics[, c("RMSE", "Rsquared", "MAE")])
+cat("\n五折交叉验证平均评估指标：\n")
+print(avg_cv_metrics)
+
+train_predictions <- predict(rf_model, X_train)
+test_predictions <- predict(rf_model, X_test)
+
+calculate_metrics <- function(actual, predicted) {
+  r2_score <- 1 - (sum((actual - predicted)^2) / sum((actual - mean(actual))^2))
+  rmse_score <- sqrt(mean((actual - predicted)^2))
+  mae_score <- mean(abs(actual - predicted))
+  return(list(R2 = r2_score, RMSE = rmse_score, MAE = mae_score))
 }
-
-print(cv_results)
-
-cv_avg_metrics <- cv_results %>%
-  summarise(
-    Avg_R2 = mean(R2),
-    Avg_RMSE = mean(RMSE),
-    Avg_MAE = mean(MAE)
-  )
-
-lgb_train_full <- lgb.Dataset(as.matrix(X_train), label = Y_train, free_raw_data = FALSE)
-final_model <- lgb.train(
-  params,
-  lgb_train_full
-)
-
-train_predictions <- predict(final_model, as.matrix(X_train))
-test_predictions <- predict(final_model, as.matrix(X_test))
 
 train_metrics <- calculate_metrics(Y_train, train_predictions)
 test_metrics <- calculate_metrics(Y_test, test_predictions)
 
+cat("\n训练集评估指标：\n")
+cat("Train R2-score:", train_metrics$R2, "\n")
+cat("Train RMSE:", train_metrics$RMSE, "\n")
+cat("Train MAE:", train_metrics$MAE, "\n")
+cat("\n测试集评估指标：\n")
+cat("Test R2-score:", test_metrics$R2, "\n")
+cat("Test RMSE:", test_metrics$RMSE, "\n")
+cat("Test MAE:", test_metrics$MAE, "\n")
+
+p <- ncol(X_train)
+n <- nrow(X_train)  
+
+
 train_matrix <- as.matrix(X_train)
-hat_values <- diag(train_matrix %*% solve(t(train_matrix) %*% train_matrix) %*% t(train_matrix))
-train_std_residuals <- (Y_train - train_predictions) / sd(Y_train - train_predictions)
+tryCatch({
+
+  hat_matrix_train <- train_matrix %*% solve(t(train_matrix) %*% train_matrix) %*% t(train_matrix)
+  hat_values <- diag(hat_matrix_train)
+}, error = function(e) {
+  library(MASS)
+  hat_matrix_train <- train_matrix %*% ginv(t(train_matrix) %*% train_matrix) %*% t(train_matrix)
+  hat_values <- diag(hat_matrix_train)
+})
+
 
 test_matrix <- as.matrix(X_test)
-test_hat_values <- diag(test_matrix %*% solve(t(train_matrix) %*% train_matrix) %*% t(test_matrix))
-test_std_residuals <- (Y_test - test_predictions) / sd(Y_train - train_predictions)
+tryCatch({
+  hat_matrix_test <- test_matrix %*% solve(t(train_matrix) %*% train_matrix) %*% t(test_matrix)
+  test_hat_values <- diag(hat_matrix_test)
+}, error = function(e) {
+  library(MASS)
+  hat_matrix_test <- test_matrix %*% ginv(t(train_matrix) %*% train_matrix) %*% t(test_matrix)
+  test_hat_values <- diag(hat_matrix_test)
+})
+
+train_residuals <- Y_train - train_predictions
+train_sd <- sd(train_residuals)
+train_std_residuals <- train_residuals / train_sd
+
+test_residuals <- Y_test - test_predictions
+test_std_residuals <- test_residuals / train_sd
+
+
+h_star <- 3 * p / n  
+y_threshold <- 3    
 
 plot_data <- data.frame(
   HatValues = c(hat_values, test_hat_values),
@@ -112,43 +131,114 @@ plot_data <- data.frame(
   Type = c(rep("Training", length(Y_train)), rep("Test", length(Y_test)))
 )
 
-p <- ncol(X_train) 
-n <- nrow(X_train)  
-h_star <- 3 * p / n 
-y_threshold <- 3  
-
-hat_value_quantiles <- quantile(plot_data$HatValues, probs = c(0.95, 0.99))
-
-hat_value_cutoff <- hat_value_quantiles[2]
-
+hat_value_quantiles <- quantile(plot_data$HatValues, probs = c(0.95, 0.99), na.rm = TRUE)
+hat_value_cutoff <- min(hat_value_quantiles[2], h_star * 3, na.rm = TRUE)
 
 plot_data_filtered <- plot_data %>%
-  filter(HatValues <= hat_value_cutoff & abs(StdResiduals) <=15 ) %>%
-  
-  filter(abs(StdResiduals) <= 15)
+  filter(HatValues <= hat_value_cutoff & abs(StdResiduals) <= 10)
+
+
+x_axis_limit <- 0.15
+
 williams_plot <- ggplot(plot_data, aes(x = HatValues, y = StdResiduals, color = Type, shape = Type)) +
   geom_point(alpha = 0.85, size = 5) +
   geom_hline(yintercept = c(-y_threshold, y_threshold), linetype = "dashed", color = "red", linewidth = 0.8) +
   geom_vline(xintercept = h_star, linetype = "dashed", color = "red", linewidth = 0.8) +
   labs(
-    title = paste("AD Thresholds: h* =", round(h_star, 4), ", Y = ±", y_threshold),
-    x = "Leverage", 
+    title = paste("Williams Plot - Applicability Domain Analysis"),
+    subtitle = paste("h* =", round(h_star, 4), "| Y = ±", y_threshold),
+    x = "Leverage (Hat Values)", 
     y = "Standardized Residuals"
   ) +
   scale_color_manual(values = c("Training" = "#5b68ad", "Test" = "#4FB5A0")) +
   scale_shape_manual(values = c("Training" = 16, "Test" = 17)) +
+  scale_x_continuous(limits = c(0, x_axis_limit), breaks = seq(0, 0.15, by = 0.05)) +
   theme_bw() +
   theme(
     plot.title = element_text(hjust = 0.5, size = 14, face = "bold", family = "Arial"),
+    plot.subtitle = element_text(hjust = 0.5, size = 11, family = "Arial"),
     axis.title.x = element_text(size = 12, face = "bold", family = "Arial"),
     axis.title.y = element_text(size = 12, face = "bold", family = "Arial"),
     axis.text.x = element_text(size = 10, face = "bold", family = "Arial"),
     axis.text.y = element_text(size = 10, face = "bold", family = "Arial"),
     legend.background = element_blank(),
+    legend.position = "bottom",
     panel.grid = element_blank(),
-    panel.border = element_rect(color = "black", size = 1.5)
-  ) +
-  coord_cartesian(ylim = c(min(plot_data$StdResiduals)*1.1, 
-                           max(plot_data$StdResiduals)*1.1)) 
+    panel.border = element_rect(color = "black", linewidth = 1.5)
+  )
+
 print(williams_plot)
-ggsave("williams_plot_filtered.tiff", plot = williams_plot, width = 8, height = 6, dpi = 600)
+ggsave("RF_Williams_Plot.tiff", plot = williams_plot, width = 9, height = 7, dpi = 600)
+
+
+
+
+
+
+
+
+
+
+
+
+train_center <- colMeans(X_train)
+train_distances_to_center <- apply(X_train, 1, function(x) sqrt(sum((x - train_center)^2)))
+test_distances_to_center <- apply(X_test, 1, function(x) sqrt(sum((x - train_center)^2)))
+
+
+mean_train_dist <- mean(train_distances_to_center)
+sd_train_dist <- sd(train_distances_to_center)
+
+dist_threshold_1sd <- mean_train_dist + sd_train_dist  
+dist_threshold_2sd <- mean_train_dist + 2 * sd_train_dist 
+dist_threshold_3sd <- mean_train_dist + 3 * sd_train_dist  
+dist_threshold_percentile <- quantile(train_distances_to_center, probs = 0.95)  # 95%分位数
+
+distance_data <- data.frame(
+  Distance = c(train_distances_to_center, test_distances_to_center),
+  StdResiduals = c(train_std_residuals, test_std_residuals),
+  HatValues = c(hat_values, test_hat_values),
+  Dataset = c(rep("Training", length(Y_train)), rep("Test", length(Y_test))),
+  SampleID = c(rownames(X_train), rownames(X_test))
+)
+
+distance_data_for_plot <- distance_data %>%
+  filter(Distance <= 10)
+
+y_max_for_plot <- ifelse(nrow(distance_data_for_plot) > 0, 
+                         max(distance_data_for_plot$StdResiduals), 
+                         max(distance_data$StdResiduals))
+
+distance_residual_plot <- ggplot(distance_data_for_plot, aes(x = Distance, y = StdResiduals, color = Dataset, shape = Dataset)) +
+  geom_point(alpha = 0.85, size = 5) + 
+  geom_hline(yintercept = c(-y_threshold, y_threshold), linetype = "dashed", color = "red", linewidth = 0.8) +
+  geom_vline(xintercept = dist_threshold_2sd, linetype = "dashed", color = "blue", linewidth = 0.8) +
+  geom_vline(xintercept = dist_threshold_3sd, linetype = "dotted", color = "purple", linewidth = 0.8) +
+  
+  labs(
+    title = "Distance-Residual Plot - Euclidean Distance Based AD",
+    subtitle = paste("Train Distance Mean:", round(mean_train_dist, 3), 
+                     "| SD:", round(sd_train_dist, 3),
+                     "| 95% Percentile:", round(dist_threshold_percentile, 3)),
+    x = "Euclidean Distance to Training Center", 
+    y = "Standardized Residuals"
+  ) +
+  scale_color_manual(values = c("Training" = "#5b68ad", "Test" = "#4FB5A0")) +
+  scale_shape_manual(values = c("Training" = 16, "Test" = 17)) +
+  
+  theme_bw() +
+  theme(
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold", family = "Arial"),
+    plot.subtitle = element_text(hjust = 0.5, size = 11, family = "Arial"),
+    axis.title.x = element_text(size = 12, face = "bold", family = "Arial"),
+    axis.title.y = element_text(size = 12, face = "bold", family = "Arial"),
+    axis.text.x = element_text(size = 10, face = "bold", family = "Arial"),
+    axis.text.y = element_text(size = 10, face = "bold", family = "Arial"),
+    legend.background = element_blank(),
+    legend.position = "bottom",
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", linewidth = 1.5)
+  )
+
+print(distance_residual_plot)
+ggsave("RF_Distance_Residual_Plot.tiff", plot = distance_residual_plot, width = 10, height = 7, dpi = 600)
