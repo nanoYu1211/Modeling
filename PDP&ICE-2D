@@ -1,55 +1,161 @@
-library(dplyr)
 library(caret)
-library(lightgbm)
-library(ggplot2)
 library(randomForest)
+library(dplyr)
+library(ggplot2)
+library(viridis)
 
 data <- read.csv("code.Public database data.csv")
 
-X <- data %>% select(-viability) 
+data <- data %>%
+  mutate(
+    group_id = paste(material, shape, cell_line, Via_test, Exposure_time, sep = "_")
+  )
+
+X <- data %>% select(-viability, -group_id)  
 Y <- data$viability  
+
+preprocess_params <- preProcess(X, method = c("center", "scale"))
+X_scaled <- predict(preprocess_params, X)
 
 set.seed(258)
 
-train_index <- createDataPartition(Y, p = 0.8, list = FALSE)
-X_train <- X[train_index, ]
+unique_groups <- unique(data$group_id)
+train_groups <- sample(unique_groups, size = floor(0.8 * length(unique_groups)))
+
+train_index <- which(data$group_id %in% train_groups)
+test_index <- which(!(data$group_id %in% train_groups))
+
+X_train_scaled <- X_scaled[train_index, ]
 Y_train <- Y[train_index]
-X_test <- X[-train_index, ]
-Y_test <- Y[-train_index]
+X_test_scaled <- X_scaled[test_index, ]
+Y_test <- Y[test_index]
 
-
-params <- list(
-  objective = "regression",
-  metric = "rmse",
-  learning_rate = 0.05,
-  max_depth = 10,
-  reg_alpha = 0.1,             
-  reg_lambda = 0.2,              
-  num_leaves = 45,
-  feature_fraction = 0.7,
-  subsample = 0.8,
-  n_estimators = 800
+ctrl <- trainControl(
+  method = "cv", 
+  number = 5,   
+  savePredictions = TRUE, 
+  summaryFunction = defaultSummary  
 )
 
-lgb_train <- lgb.Dataset(as.matrix(X_train), label = Y_train)
-lgb_test <- lgb.Dataset(as.matrix(X_test), label = Y_test)
+tune_grid <- expand.grid(mtry = c(2, 4, 6, 8, 10)) 
 
-model <- lgb.train(
-  params,
-  lgb_train,
-  valids = list(test = lgb_test),  
-  early_stopping_rounds = 50
-)
-library(pdp)
-pdp_result <- pdp::partial(
-  model, 
-  pred.var = c("Zeta", "size"),  
-  train = as.matrix(X_train),    
-  grid.resolution = 20           
+set.seed(258)
+rf_model <- train(
+  x = X_train_scaled,  
+  y = Y_train,  
+  method = "rf",  
+  trControl = ctrl,  
+  tuneGrid = tune_grid, 
+  metric = "RMSE",  
+  ntree = 800,  
+  nodesize = 15,  
+  maxnodes = 20, 
 )
 
-pdp_plot <- ggplot(pdp_result, aes(x = Zeta, y = size, z = yhat)) +
-  geom_contour_filled(aes(fill = after_stat(level))) + 
+train_predictions <- predict(rf_model, X_train_scaled)
+test_predictions <- predict(rf_model, X_test_scaled)
+
+calculate_metrics <- function(actual, predicted) {
+  r2_score <- 1 - (sum((actual - predicted)^2) / sum((actual - mean(actual))^2))
+  rmse_score <- sqrt(mean((actual - predicted)^2))
+  mae_score <- mean(abs(actual - predicted))
+  return(list(R2 = r2_score, RMSE = rmse_score, MAE = mae_score))
+}
+
+train_metrics <- calculate_metrics(Y_train, train_predictions)
+test_metrics <- calculate_metrics(Y_test, test_predictions)
+
+cat("\n训练集评估指标：\n")
+cat("Train R2-score:", train_metrics$R2, "\n")
+cat("Train RMSE:", train_metrics$RMSE, "\n")
+cat("Train MAE:", train_metrics$MAE, "\n")
+cat("\n测试集评估指标：\n")
+cat("Test R2-score:", test_metrics$R2, "\n")
+cat("Test RMSE:", test_metrics$RMSE, "\n")
+cat("Test MAE:", test_metrics$MAE, "\n")
+
+data_clean <- data
+data_clean$reductant <- as.factor(data_clean$reductant)
+
+X_model <- data_clean %>% select(-viability, -group_id)
+Y_model <- data_clean$viability
+
+numeric_cols <- names(X_model)[sapply(X_model, is.numeric)]
+center_vals <- sapply(X_model[numeric_cols], mean, na.rm = TRUE)
+scale_vals <- sapply(X_model[numeric_cols], sd, na.rm = TRUE)
+X_model_scaled <- X_model
+for(col in numeric_cols) {
+  X_model_scaled[[col]] <- (X_model[[col]] - center_vals[col]) / scale_vals[col]
+}
+
+set.seed(258)
+rf_model_new <- randomForest(
+  x = X_model_scaled,
+  y = Y_model,
+  ntree = 500,
+  mtry = floor(sqrt(ncol(X_model_scaled))),
+  nodesize = 10,
+  importance = TRUE
+)
+
+reductant_list <- sort(unique(data_clean$reductant))
+pH_grid <- seq(2, 12, length.out = 30) 
+
+grid_data <- expand.grid(
+  reductant = reductant_list,
+  pH = pH_grid
+)
+
+for(feat in colnames(X_model)) {
+  if(feat == "reductant" || feat == "pH") next
+  
+  if(is.numeric(data_clean[[feat]])) {
+    median_val <- median(data_clean[[feat]], na.rm = TRUE)
+    grid_data[[feat]] <- median_val
+  } else {
+    freq_table <- table(data_clean[[feat]])
+    mode_val <- names(freq_table)[which.max(freq_table)]
+    grid_data[[feat]] <- mode_val
+  }
+}
+
+grid_data_scaled <- grid_data
+for(col in numeric_cols) {
+  if(col %in% colnames(grid_data_scaled)) {
+    grid_data_scaled[[col]] <- (grid_data[[col]] - center_vals[col]) / scale_vals[col]
+  }
+}
+
+predictions <- predict(rf_model_new, as.matrix(grid_data_scaled))
+grid_data$viability <- predictions
+grid_data$viability <- pmin(pmax(grid_data$viability, 0), 150)
+
+p_facet <- ggplot(grid_data, aes(x = pH, y = viability)) +
+  geom_line(color = "steelblue", size = 1.2) +
+  geom_ribbon(aes(ymin = 0, ymax = viability), alpha = 0.3, fill = "steelblue") +
+  facet_wrap(~ reductant, ncol = 5) +
+  labs(
+    title = "pH-Viability Relationship by Reductant Type",
+    x = "pH",
+    y = "Predicted Cell Viability (%)"
+  ) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Arial", face = "bold", size = 10),
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
+    strip.background = element_rect(fill = "lightgray", color = "black"),
+    strip.text = element_text(face = "bold", size = 10)
+  )
+
+
+reductant_numeric <- 1:length(unique(grid_data$reductant))
+names(reductant_numeric) <- sort(unique(grid_data$reductant))
+grid_data$reductant_num <- reductant_numeric[as.character(grid_data$reductant)]
+
+p_contour <- ggplot(grid_data, aes(x = pH, y = reductant_num, z = viability)) +
+  geom_contour_filled(aes(fill = after_stat(level)), bins = 8) + 
   scale_fill_viridis_d(
     name = "Predicted\nviability",
     guide = guide_colorsteps(
@@ -62,294 +168,210 @@ pdp_plot <- ggplot(pdp_result, aes(x = Zeta, y = size, z = yhat)) +
     )
   ) + 
   geom_contour(color = "black", linewidth = 0.2, alpha = 0.5) +
+  scale_x_continuous(
+    breaks = seq(2, 12, 2),
+    limits = c(2, 12),
+    expand = c(0, 0)
+  ) +
+  scale_y_continuous(
+    breaks = reductant_numeric,
+    labels = names(reductant_numeric),
+    expand = c(0, 0)
+  ) +
   labs(
-    x = "Zeta potential",
-    y = "Size",
-    title = "Bivariate Partial Dependence Contour Plot"
+    title = "2D Contour: pH vs Reductant Type",
+    x = "pH",
+    y = "Reductant Type"
   ) +
   theme_minimal() +
   theme(
     text = element_text(family = "Arial", face = "bold"),
     panel.grid = element_blank(),
-    panel.border = element_rect(color = "black", fill = NA, size = 1),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 1),
     plot.background = element_rect(fill = "white"),
     axis.title = element_text(face = "bold"),
     axis.text = element_text(face = "bold"),
+    axis.text.y = element_text(size = 9),
     legend.title = element_text(face = "bold")
   )
 
+ggsave("Facet_pH_vs_Reductant.tiff", plot = p_facet, 
+       width = 15, height = 10, dpi = 600)
 
-print(pdp_plot)
-ggsave("Zeta-size_pdp_ice_plot.tiff", plot = pdp_plot, width = 8, height = 6, dpi = 600)
+ggsave("Contour_pH_vs_Reductant.tiff", plot = p_contour, 
+       width = 12, height = 8, dpi = 600)
+
+print(p_facet)
+print(p_contour)
+
+cat("\n========== 完成！生成的文件 ==========\n")
+cat("1. Facet_pH_vs_Reductant.tiff - 分面图（pH vs 还原剂）\n")
+cat("2. Contour_pH_vs_Reductant.tiff - 等高线图（pH vs 还原剂）\n")
 
 
-pdp_result <- pdp::partial(
-  model, 
-  pred.var = c("Exposure_C", "size"),  
-  train = as.matrix(X_train),   
-  grid.resolution = 20           
+
+
+
+
+library(caret)
+library(randomForest)
+library(dplyr)
+library(ggplot2)
+library(viridis)
+
+data <- read.csv("code.Public database data.csv")
+
+data <- data %>%
+  mutate(
+    group_id = paste(material, shape, cell_line, Via_test, Exposure_time, sep = "_")
+  )
+
+X <- data %>% select(-viability, -group_id)  
+Y <- data$viability  
+
+preprocess_params <- preProcess(X, method = c("center", "scale"))
+X_scaled <- predict(preprocess_params, X)
+
+set.seed(258)
+
+unique_groups <- unique(data$group_id)
+train_groups <- sample(unique_groups, size = floor(0.8 * length(unique_groups)))
+
+train_index <- which(data$group_id %in% train_groups)
+test_index <- which(!(data$group_id %in% train_groups))
+
+X_train_scaled <- X_scaled[train_index, ]
+Y_train <- Y[train_index]
+X_test_scaled <- X_scaled[test_index, ]
+Y_test <- Y[test_index]
+
+ctrl <- trainControl(
+  method = "cv", 
+  number = 5,   
+  savePredictions = TRUE, 
+  summaryFunction = defaultSummary  
 )
 
-pdp_plot <- ggplot(pdp_result, aes(x = Exposure_C, y = size, z = yhat)) +
-  geom_contour_filled(aes(fill = after_stat(level))) +  
-  scale_fill_viridis_d(
-    name = "Predicted\nviability",
-    guide = guide_colorsteps(
-      ticks = FALSE, 
-      even.steps = FALSE, 
-      barwidth = unit(5, "mm"),
-      barheight = unit(38, "mm"),
-      frame.colour = "black",
-      show.limits = TRUE
-    )
-  ) + 
-  geom_contour(color = "black", linewidth = 0.2, alpha = 0.5) +  
-  coord_cartesian(xlim = c(0, 800), ylim = c(0, 100)) +  
+tune_grid <- expand.grid(mtry = c(2, 4, 6, 8, 10)) 
+
+set.seed(258)
+rf_model <- train(
+  x = X_train_scaled,  
+  y = Y_train,  
+  method = "rf",  
+  trControl = ctrl,  
+  tuneGrid = tune_grid, 
+  metric = "RMSE",  
+  ntree = 800,  
+  nodesize = 15,  
+  maxnodes = 20, 
+)
+
+train_predictions <- predict(rf_model, X_train_scaled)
+test_predictions <- predict(rf_model, X_test_scaled)
+
+calculate_metrics <- function(actual, predicted) {
+  r2_score <- 1 - (sum((actual - predicted)^2) / sum((actual - mean(actual))^2))
+  rmse_score <- sqrt(mean((actual - predicted)^2))
+  mae_score <- mean(abs(actual - predicted))
+  return(list(R2 = r2_score, RMSE = rmse_score, MAE = mae_score))
+}
+
+train_metrics <- calculate_metrics(Y_train, train_predictions)
+test_metrics <- calculate_metrics(Y_test, test_predictions)
+
+cat("\n训练集评估指标：\n")
+cat("Train R2-score:", train_metrics$R2, "\n")
+cat("Train RMSE:", train_metrics$RMSE, "\n")
+cat("Train MAE:", train_metrics$MAE, "\n")
+cat("\n测试集评估指标：\n")
+cat("Test R2-score:", test_metrics$R2, "\n")
+cat("Test RMSE:", test_metrics$RMSE, "\n")
+cat("Test MAE:", test_metrics$MAE, "\n")
+
+data_clean <- data
+data_clean$reductant <- as.factor(data_clean$reductant)
+签
+X_model <- data_clean %>% select(-viability, -group_id)
+Y_model <- data_clean$viability
+
+numeric_cols <- names(X_model)[sapply(X_model, is.numeric)]
+center_vals <- sapply(X_model[numeric_cols], mean, na.rm = TRUE)
+scale_vals <- sapply(X_model[numeric_cols], sd, na.rm = TRUE)
+
+X_model_scaled <- X_model
+for(col in numeric_cols) {
+  X_model_scaled[[col]] <- (X_model[[col]] - center_vals[col]) / scale_vals[col]
+}
+
+set.seed(258)
+rf_model_new <- randomForest(
+  x = X_model_scaled,
+  y = Y_model,
+  ntree = 500,
+  mtry = floor(sqrt(ncol(X_model_scaled))),
+  nodesize = 10,
+  importance = TRUE
+)
+
+reductant_list <- sort(unique(data_clean$reductant))
+precursor_C_grid <- seq(0, 50, length.out = 50)  # precursor_C范围从0到30
+
+grid_data <- expand.grid(
+  reductant = reductant_list,
+  precursor_C = precursor_C_grid
+)
+
+for(feat in colnames(X_model)) {
+  if(feat == "reductant" || feat == "precursor_C") next
+  
+  if(is.numeric(data_clean[[feat]])) {
+    median_val <- median(data_clean[[feat]], na.rm = TRUE)
+    grid_data[[feat]] <- median_val
+  } else {
+    freq_table <- table(data_clean[[feat]])
+    mode_val <- names(freq_table)[which.max(freq_table)]
+    grid_data[[feat]] <- mode_val
+  }
+}
+
+grid_data_scaled <- grid_data
+for(col in numeric_cols) {
+  if(col %in% colnames(grid_data_scaled)) {
+    grid_data_scaled[[col]] <- (grid_data[[col]] - center_vals[col]) / scale_vals[col]
+  }
+}
+
+predictions <- predict(rf_model_new, as.matrix(grid_data_scaled))
+grid_data$viability <- predictions
+grid_data$viability <- pmin(pmax(grid_data$viability, 0), 150)
+
+p_facet <- ggplot(grid_data, aes(x = precursor_C, y = viability)) +
+  geom_line(color = "steelblue", size = 1.2) +
+  geom_ribbon(aes(ymin = 0, ymax = viability), alpha = 0.3, fill = "steelblue") +
+  facet_wrap(~ reductant, ncol = 5) +
   labs(
-    x = "Exposure_C",
-    y = "size",
-    title = "Bivariate Partial Dependence Contour Plot"
+    title = "Precursor_C-Viability Relationship by Reductant Type",
+    x = "Precursor_C Concentration",
+    y = "Predicted Cell Viability (%)"
   ) +
   theme_minimal() +
   theme(
-    text = element_text(family = "Arial", face = "bold"),
+    text = element_text(family = "Arial", face = "bold", size = 10),
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
     panel.grid = element_blank(),
-    panel.border = element_rect(color = "black", fill = NA, size = 1),
-    plot.background = element_rect(fill = "white"),
-    axis.title = element_text(face = "bold"),
-    axis.text = element_text(face = "bold"),
-    legend.title = element_text(face = "bold")
-  )
-print(pdp_plot)
-ggsave("Exposure_C-size_pdp_ice_plot.tiff", plot = pdp_plot, width = 8, height = 6, dpi = 600)
-
-
-pdp_result <- pdp::partial(
-  model, 
-  pred.var = c("precursor_C", "Syn_time"),
-  train = as.matrix(X_train),   
-  grid.resolution = 20         
-)
-
-pdp_plot <- ggplot(pdp_result, aes(x = precursor_C, y = Syn_time, z = yhat)) +
-  geom_contour_filled(aes(fill = after_stat(level))) + 
-  scale_fill_viridis_d(
-    name = "Predicted\nviability",
-    guide = guide_colorsteps(
-      ticks = FALSE, 
-      even.steps = FALSE, 
-      barwidth = unit(5, "mm"),
-      barheight = unit(54, "mm"),
-      frame.colour = "black",
-      show.limits = TRUE
-    )
-  ) + 
-  geom_contour(color = "black", linewidth = 0.2, alpha = 0.5) + 
-  coord_cartesian(xlim = c(0, 50), ylim = c(0, 2000)) +  
-  labs(
-    x = "precursor_C",
-    y = "Syn_time",
-    title = "Bivariate Partial Dependence Contour Plot"
-  ) +
-  theme_minimal() +
-  theme(
-    text = element_text(family = "Arial", face = "bold"),
-    panel.grid = element_blank(),
-    panel.border = element_rect(color = "black", fill = NA, size = 1),
-    plot.background = element_rect(fill = "white"),
-    axis.title = element_text(face = "bold"),
-    axis.text = element_text(face = "bold"),
-    legend.title = element_text(face = "bold")
-  )
-
-print(pdp_plot)
-ggsave("precursor_C_Syn_time_pdp_ice_plot.tiff", plot = pdp_plot, width = 8, height = 6, dpi = 600)
-
-
-pdp_result <- pdp::partial(
-  model, 
-  pred.var = c("precursor_C", "pH"), 
-  train = as.matrix(X_train),   
-  grid.resolution = 20          
-)
-
-pdp_plot <- ggplot(pdp_result, aes(x = precursor_C, y = pH, z = yhat)) +
-  geom_contour_filled(aes(fill = after_stat(level))) + 
-  scale_fill_viridis_d(
-    name = "Predicted\nviability",
-    guide = guide_colorsteps(
-      ticks = FALSE, 
-      even.steps = FALSE, 
-      barwidth = unit(5, "mm"),
-      barheight = unit(60, "mm"),
-      frame.colour = "black",
-      show.limits = TRUE
-    )
-  ) + 
-  geom_contour(color = "black", linewidth = 0.2, alpha = 0.5) +  
-  coord_cartesian(xlim = c(0, 50), ylim = c(2.8, 12.1)) + 
-  labs(
-    x = "precursor_C",
-    y = "pH",
-    title = "Bivariate Partial Dependence Contour Plot"
-  ) +
-  theme_minimal() +
-  theme(
-    text = element_text(family = "Arial", face = "bold"),
-    panel.grid = element_blank(),
-    panel.border = element_rect(color = "black", fill = NA, size = 1),
-    plot.background = element_rect(fill = "white"),
-    axis.title = element_text(face = "bold"),
-    axis.text = element_text(face = "bold"),
-    legend.title = element_text(face = "bold")
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
+    strip.background = element_rect(fill = "lightgray", color = "black"),
+    strip.text = element_text(face = "bold", size = 10)
   )
 
 
-print(pdp_plot)
-ggsave("precursor_C_pH_pdp_ice_plot.tiff", plot = pdp_plot, width = 8, height = 6, dpi = 600)
+reductant_numeric <- 1:length(unique(grid_data$reductant))
+names(reductant_numeric) <- sort(unique(grid_data$reductant))
+grid_data$reductant_num <- reductant_numeric[as.character(grid_data$reductant)]
 
-
-pdp_result <- pdp::partial(
-  model, 
-  pred.var = c("Syn_temperature", "pH"), 
-  train = as.matrix(X_train),     
-  grid.resolution = 20           
-)
-
-pdp_plot <- ggplot(pdp_result, aes(x = Syn_temperature, y = pH, z = yhat)) +
-  geom_contour_filled(aes(fill = after_stat(level))) + 
-  scale_fill_viridis_d(
-    name = "Predicted\nviability",
-    guide = guide_colorsteps(
-      ticks = FALSE, 
-      even.steps = FALSE, 
-      barwidth = unit(5, "mm"),
-      barheight = unit(60, "mm"),
-      frame.colour = "black",
-      show.limits = TRUE
-    )
-  ) + 
-  geom_contour(color = "black", linewidth = 0.2, alpha = 0.5) + 
-  coord_cartesian(xlim = c(-5, 125), ylim = c(3,12)) + 
-  labs(
-    x = "Syn_temperature",
-    y = "pH",
-    title = "Bivariate Partial Dependence Contour Plot"
-  ) +
-  theme_minimal() +
-  theme(
-    text = element_text(family = "Arial", face = "bold"),
-    panel.grid = element_blank(),
-    panel.border = element_rect(color = "black", fill = NA, size = 1),
-    plot.background = element_rect(fill = "white"),
-    axis.title = element_text(face = "bold"),
-    axis.text = element_text(face = "bold"),
-    legend.title = element_text(face = "bold")
-  )
-
-
-print(pdp_plot)
-ggsave("pH_Syn_temperature_pdp_ice_plot.tiff", plot = pdp_plot, width = 8, height = 6, dpi = 600)
-
-pdp_result <- pdp::partial(
-  model, 
-  pred.var = c("Syn_temperature", "Syn_time"), 
-  train = as.matrix(X_train),   
-  grid.resolution = 20          
-)
-
-pdp_plot <- ggplot(pdp_result, aes(x = Syn_temperature, y = Syn_time, z = yhat)) +
-  geom_contour_filled(aes(fill = after_stat(level))) + 
-  scale_fill_viridis_d(
-    name = "Predicted\nviability",
-    guide = guide_colorsteps(
-      ticks = FALSE, 
-      even.steps = FALSE, 
-      barwidth = unit(5, "mm"),
-      barheight = unit(60, "mm"),
-      frame.colour = "black",
-      show.limits = TRUE
-    )
-  ) + 
-  geom_contour(color = "black", linewidth = 0.2, alpha = 0.5) +  
-  coord_cartesian(xlim = c(-5, 125), ylim = c(0,2000)) + 
-  labs(
-    x = "Syn_temperature",
-    y = "Syn_time",
-    title = "Bivariate Partial Dependence Contour Plot"
-  ) +
-  theme_minimal() +
-  theme(
-    text = element_text(family = "Arial", face = "bold"),
-    panel.grid = element_blank(),
-    panel.border = element_rect(color = "black", fill = NA, size = 1),
-    plot.background = element_rect(fill = "white"),
-    axis.title = element_text(face = "bold"),
-    axis.text = element_text(face = "bold"),
-    legend.title = element_text(face = "bold")
-  )
-
-print(pdp_plot)
-ggsave("Syn_time_Syn_temperature_pdp_ice_plot.tiff", plot = pdp_plot, width = 8, height = 6, dpi = 600)
-
-
-
-
-
-pdp_result <- pdp::partial(
-  model, 
-  pred.var = c("Syn_time", "pH"),  
-  train = as.matrix(X_train),   
-  grid.resolution = 20          
-)
-
-
-pdp_plot <- ggplot(pdp_result, aes(x = Syn_time, y = pH, z = yhat)) +
-  geom_contour_filled(aes(fill = after_stat(level))) +  
-  scale_fill_viridis_d(
-    name = "Predicted\nviability",
-    guide = guide_colorsteps(
-      ticks = FALSE, 
-      even.steps = FALSE, 
-      barwidth = unit(5, "mm"),
-      barheight = unit(60, "mm"),
-      frame.colour = "black",
-      show.limits = TRUE
-    )
-  ) + 
-  geom_contour(color = "black", linewidth = 0.2, alpha = 0.5) +  
-  coord_cartesian(xlim = c(0, 1500), ylim = c(3,12)) + 
-  labs(
-    x = "Syn_time",
-    y = "pH",
-    title = "Bivariate Partial Dependence Contour Plot"
-  ) +
-  theme_minimal() +
-  theme(
-    text = element_text(family = "Arial", face = "bold"),
-    panel.grid = element_blank(),
-    panel.border = element_rect(color = "black", fill = NA, size = 1),
-    plot.background = element_rect(fill = "white"),
-    axis.title = element_text(face = "bold"),
-    axis.text = element_text(face = "bold"),
-    legend.title = element_text(face = "bold")
-  )
-
-
-print(pdp_plot)
-ggsave("Syn_time_pH_pdp_ice_plot.tiff", plot = pdp_plot, width = 8, height = 6, dpi = 600)
-
-
-
-pdp_result <- pdp::partial(
-  model, 
-  pred.var = c("Exposure_time", "size"),  
-  train = as.matrix(X_train),    
-  grid.resolution = 20            
-)
-
-pdp_plot <- ggplot(pdp_result, aes(x = Exposure_time, y = size, z = yhat)) +
-  geom_contour_filled(aes(fill = after_stat(level))) +  
+p_contour <- ggplot(grid_data, aes(x = precursor_C, y = reductant_num, z = viability)) +
+  geom_contour_filled(aes(fill = after_stat(level)), bins = 8) + 
   scale_fill_viridis_d(
     name = "Predicted\nviability",
     guide = guide_colorsteps(
@@ -362,23 +384,262 @@ pdp_plot <- ggplot(pdp_result, aes(x = Exposure_time, y = size, z = yhat)) +
     )
   ) + 
   geom_contour(color = "black", linewidth = 0.2, alpha = 0.5) +
-  coord_cartesian(xlim = c(0, 120), ylim = c(0,100)) +
+  scale_x_continuous(
+    breaks = seq(0, 50, 10),
+    limits = c(0, 50),
+    expand = c(0, 0)
+  ) +
+  scale_y_continuous(
+    breaks = reductant_numeric,
+    labels = names(reductant_numeric),
+    expand = c(0, 0)
+  ) +
   labs(
-    x = "Exposure_time",
-    y = "size",
-    title = "Bivariate Partial Dependence Contour Plot"
+    title = "2D Contour: Precursor_C vs Reductant Type",
+    x = "Precursor_C Concentration",
+    y = "Reductant Type"
   ) +
   theme_minimal() +
   theme(
     text = element_text(family = "Arial", face = "bold"),
     panel.grid = element_blank(),
-    panel.border = element_rect(color = "black", fill = NA, size = 1),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 1),
     plot.background = element_rect(fill = "white"),
     axis.title = element_text(face = "bold"),
     axis.text = element_text(face = "bold"),
+    axis.text.y = element_text(size = 9),
     legend.title = element_text(face = "bold")
   )
 
-print(pdp_plot)
-ggsave("Exposure_time_size_pdp_ice_plot.tiff", plot = pdp_plot, width = 8, height = 6, dpi = 600)
+ggsave("Facet_PrecursorC_vs_Reductant.tiff", plot = p_facet, 
+       width = 15, height = 10, dpi = 600)
 
+ggsave("Contour_PrecursorC_vs_Reductant.tiff", plot = p_contour, 
+       width = 12, height = 8, dpi = 600)
+
+print(p_facet)
+print(p_contour)
+
+cat("\n========== 完成！生成的文件 ==========\n")
+cat("1. Facet_PrecursorC_vs_Reductant.tiff - 分面图（Precursor_C vs 还原剂）\n")
+cat("2. Contour_PrecursorC_vs_Reductant.tiff - 等高线图（Precursor_C vs 还原剂）\n")
+
+
+
+
+
+library(caret)
+library(randomForest)
+library(dplyr)
+library(ggplot2)
+library(viridis)
+
+data <- read.csv("code.Public database data.csv")
+
+
+data <- data %>%
+  mutate(
+    group_id = paste(material, shape, cell_line, Via_test, Exposure_time, sep = "_")
+  )
+
+X <- data %>% select(-viability, -group_id)  
+Y <- data$viability  
+
+preprocess_params <- preProcess(X, method = c("center", "scale"))
+X_scaled <- predict(preprocess_params, X)
+
+set.seed(258)
+
+unique_groups <- unique(data$group_id)
+train_groups <- sample(unique_groups, size = floor(0.8 * length(unique_groups)))
+
+train_index <- which(data$group_id %in% train_groups)
+test_index <- which(!(data$group_id %in% train_groups))
+
+
+X_train_scaled <- X_scaled[train_index, ]
+Y_train <- Y[train_index]
+X_test_scaled <- X_scaled[test_index, ]
+Y_test <- Y[test_index]
+
+
+ctrl <- trainControl(
+  method = "cv", 
+  number = 5,   
+  savePredictions = TRUE, 
+  summaryFunction = defaultSummary  
+)
+
+tune_grid <- expand.grid(mtry = c(2, 4, 6, 8, 10)) 
+
+set.seed(258)
+rf_model <- train(
+  x = X_train_scaled,  
+  y = Y_train,  
+  method = "rf",  
+  trControl = ctrl,  
+  tuneGrid = tune_grid, 
+  metric = "RMSE",  
+  ntree = 800,  
+  nodesize = 15,  
+  maxnodes = 20, 
+)
+
+train_predictions <- predict(rf_model, X_train_scaled)
+test_predictions <- predict(rf_model, X_test_scaled)
+
+calculate_metrics <- function(actual, predicted) {
+  r2_score <- 1 - (sum((actual - predicted)^2) / sum((actual - mean(actual))^2))
+  rmse_score <- sqrt(mean((actual - predicted)^2))
+  mae_score <- mean(abs(actual - predicted))
+  return(list(R2 = r2_score, RMSE = rmse_score, MAE = mae_score))
+}
+
+train_metrics <- calculate_metrics(Y_train, train_predictions)
+test_metrics <- calculate_metrics(Y_test, test_predictions)
+
+cat("\n训练集评估指标：\n")
+cat("Train R2-score:", train_metrics$R2, "\n")
+cat("Train RMSE:", train_metrics$RMSE, "\n")
+cat("Train MAE:", train_metrics$MAE, "\n")
+cat("\n测试集评估指标：\n")
+cat("Test R2-score:", test_metrics$R2, "\n")
+cat("Test RMSE:", test_metrics$RMSE, "\n")
+cat("Test MAE:", test_metrics$MAE, "\n")
+
+
+
+data_clean <- data
+data_clean$shape <- as.factor(data_clean$shape)
+
+X_model <- data_clean %>% select(-viability, -group_id)
+Y_model <- data_clean$viability
+
+numeric_cols <- names(X_model)[sapply(X_model, is.numeric)]
+center_vals <- sapply(X_model[numeric_cols], mean, na.rm = TRUE)
+scale_vals <- sapply(X_model[numeric_cols], sd, na.rm = TRUE)
+
+
+X_model_scaled <- X_model
+for(col in numeric_cols) {
+  X_model_scaled[[col]] <- (X_model[[col]] - center_vals[col]) / scale_vals[col]
+}
+
+
+set.seed(258)
+rf_model_new <- randomForest(
+  x = X_model_scaled,
+  y = Y_model,
+  ntree = 500,
+  mtry = floor(sqrt(ncol(X_model_scaled))),
+  nodesize = 10,
+  importance = TRUE
+)
+
+shape_list <- sort(unique(data_clean$shape))
+size_grid <- seq(5, 100, length.out = 30)
+
+grid_data <- expand.grid(
+  shape = shape_list,
+  size = size_grid
+)
+
+for(feat in colnames(X_model)) {
+  if(feat == "shape" || feat == "size") next
+  
+  if(is.numeric(data_clean[[feat]])) {
+    median_val <- median(data_clean[[feat]], na.rm = TRUE)
+    grid_data[[feat]] <- median_val
+  } else {
+    freq_table <- table(data_clean[[feat]])
+    mode_val <- names(freq_table)[which.max(freq_table)]
+    grid_data[[feat]] <- mode_val
+  }
+}
+
+grid_data_scaled <- grid_data
+for(col in numeric_cols) {
+  if(col %in% colnames(grid_data_scaled)) {
+    grid_data_scaled[[col]] <- (grid_data[[col]] - center_vals[col]) / scale_vals[col]
+  }
+}
+
+predictions <- predict(rf_model_new, as.matrix(grid_data_scaled))
+grid_data$viability <- predictions
+grid_data$viability <- pmin(pmax(grid_data$viability, 0), 150)
+
+
+p_facet <- ggplot(grid_data, aes(x = size, y = viability)) +
+  geom_line(color = "steelblue", size = 1.2) +
+  geom_ribbon(aes(ymin = 0, ymax = viability), alpha = 0.3, fill = "steelblue") +
+  facet_wrap(~ shape, ncol = 5) +
+  labs(
+    title = "Size-Viability Relationship by Shape Type",
+    x = "Size (nm)",
+    y = "Predicted Cell Viability (%)"
+  ) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Arial", face = "bold", size = 10),
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 14),
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),
+    strip.background = element_rect(fill = "lightgray", color = "black"),
+    strip.text = element_text(face = "bold", size = 10)
+  )
+
+shape_numeric <- 1:length(unique(grid_data$shape))
+names(shape_numeric) <- sort(unique(grid_data$shape))
+grid_data$shape_num <- shape_numeric[as.character(grid_data$shape)]
+
+p_contour <- ggplot(grid_data, aes(x = size, y = shape_num, z = viability)) +
+  geom_contour_filled(aes(fill = after_stat(level)), bins = 8) + 
+  scale_fill_viridis_d(
+    name = "Predicted\nviability",
+    guide = guide_colorsteps(
+      ticks = FALSE, 
+      even.steps = FALSE, 
+      barwidth = unit(5, "mm"),
+      barheight = unit(60, "mm"),
+      frame.colour = "black",
+      show.limits = TRUE
+    )
+  ) + 
+  geom_contour(color = "black", linewidth = 0.2, alpha = 0.5) +
+  scale_x_continuous(
+    breaks = seq(0, 100, 20),
+    limits = c(0, 100),
+    expand = c(0, 0)
+  ) +
+  scale_y_continuous(
+    breaks = shape_numeric,
+    labels = names(shape_numeric),
+    expand = c(0, 0)
+  ) +
+  labs(
+    title = "2D Contour: Particle Size vs Shape Type",
+    x = "Size (nm)",
+    y = "Shape Type"
+  ) +
+  theme_minimal() +
+  theme(
+    text = element_text(family = "Arial", face = "bold"),
+    panel.grid = element_blank(),
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 1),
+    plot.background = element_rect(fill = "white"),
+    axis.title = element_text(face = "bold"),
+    axis.text = element_text(face = "bold"),
+    axis.text.y = element_text(size = 9),
+    legend.title = element_text(face = "bold")
+  )
+ggsave("Facet_Size_vs_Shape.tiff", plot = p_facet, 
+       width = 15, height = 10, dpi = 600)
+
+ggsave("Contour_Size_vs_Shape.tiff", plot = p_contour, 
+       width = 12, height = 8, dpi = 600)
+
+print(p_facet)
+print(p_contour)
+
+cat("1. Facet_Size_vs_Shape.tiff - 分面图（Size vs Shape）\n")
+cat("2. Contour_Size_vs_Shape.tiff - 等高线图（Size vs Shape）\n")
