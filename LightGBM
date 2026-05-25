@@ -3,32 +3,54 @@ library(caret)
 library(lightgbm)
 library(ggplot2)
 library(randomForest)
+library(glmnet) 
 
 data <- read.csv("code.Public database data.csv")
 
-X <- data %>% select(-viability) 
+
+data <- data %>%
+  mutate(
+    group_id = paste(material, shape, cell_line, Via_test, Exposure_time, sep = "_")
+  )
+
+X <- data %>% select(-viability, -group_id) 
 Y <- data$viability 
 
 set.seed(258)
 
-train_index <- createDataPartition(Y, p = 0.8, list = FALSE)
+unique_groups <- unique(data$group_id)
+train_groups <- sample(unique_groups, size = floor(0.8 * length(unique_groups)))
+
+train_index <- which(data$group_id %in% train_groups)
+test_index <- which(!(data$group_id %in% train_groups))
+
 X_train <- X[train_index, ]
 Y_train <- Y[train_index]
-X_test <- X[-train_index, ]
-Y_test <- Y[-train_index]
+X_test <- X[test_index, ]
+Y_test <- Y[test_index]
+
 
 params <- list(
   objective = "regression",
   metric = "rmse",
-  learning_rate = 0.05,
-  max_depth = 10,
-  reg_alpha = 0.1,               
-  reg_lambda = 0.2,            
-  num_leaves = 45,
+  
+  learning_rate = 0.02,
+
+  max_depth = 4,
+  num_leaves = 20,
+
+  reg_alpha = 1.5,
+  reg_lambda = 3,
+
   feature_fraction = 0.7,
-  subsample = 0.8,
-  n_estimators = 800
+  subsample = 0.75,
+
+  min_data_in_leaf = 10,
+  min_gain_to_split = 0.01,
+
+  n_estimators = 250
 )
+
 
 calculate_metrics <- function(actual, predicted) {
   r2 <- 1 - (sum((actual - predicted)^2) / sum((actual - mean(actual))^2))
@@ -38,7 +60,7 @@ calculate_metrics <- function(actual, predicted) {
 }
 
 set.seed(258)
-folds <- createFolds(Y_train, k = 5) 
+folds <- groupKFold(data$group_id[train_index], k = 5)
 
 cv_results <- data.frame(
   Fold = integer(),
@@ -49,6 +71,7 @@ cv_results <- data.frame(
 
 for (i in 1:5) {
   val_index <- folds[[i]]
+  
   X_train_fold <- X_train[-val_index, ]
   Y_train_fold <- Y_train[-val_index]
   X_val_fold <- X_train[val_index, ]
@@ -56,7 +79,7 @@ for (i in 1:5) {
   
   lgb_train_fold <- lgb.Dataset(as.matrix(X_train_fold), label = Y_train_fold, free_raw_data = FALSE)
   lgb_val_fold <- lgb.Dataset(as.matrix(X_val_fold), label = Y_val_fold, free_raw_data = FALSE)
-
+  
   model_fold <- lgb.train(
     params,
     lgb_train_fold,
@@ -108,128 +131,212 @@ cat("Test R2-score:", test_metrics$R2, "\n")
 cat("Test RMSE:", test_metrics$RMSE, "\n")
 cat("Test MAE:", test_metrics$MAE, "\n")
 
-
 library(ggplot2)
-metrics_df <- data.frame(
-  Metric = c("R2", "R2", "RMSE", "RMSE", "MAE", "MAE"),
-  Value = c(train_metrics$R2, test_metrics$R2, train_metrics$RMSE, test_metrics$RMSE, train_metrics$MAE, test_metrics$MAE),
-  Dataset = c("Train", "Test", "Train", "Test", "Train", "Test")
-)
+train_results <- data.frame(Actual = Y_train, Predicted = train_predictions, Dataset = "Train")
+test_results <- data.frame(Actual = Y_test, Predicted = test_predictions, Dataset = "Test")
 
-metrics_df$Metric <- factor(metrics_df$Metric, levels = c("R2", "RMSE", "MAE"))
+all_results <- rbind(train_results, test_results)
 
-train_results <- data.frame(Actual = Y_train, Predicted = train_predictions)
-test_results <- data.frame(Actual = Y_test, Predicted = test_predictions)
-
-ggplot(train_results, aes(x = Actual, y = Predicted)) +
-  geom_point(alpha = 0.8, color = "blue", size = 5) +
-  theme_minimal() +
-  theme(
-    panel.grid.major = element_blank(),  
-    panel.grid.minor = element_blank(),
-    axis.line = element_line(color = "black"), 
-    axis.ticks = element_line(color = "black") 
-  ) +
-  labs(x = " ", y = " ", title = "") +
-  ggtitle(" ")
-
-
-ggplot(test_results, aes(x = Actual, y = Predicted)) +
-  geom_point(alpha = 0.8, color = "blue", size = 5) +
-  theme_minimal() +
-  expand_limits(x = 0, y = 0) + 
-  theme(
-    panel.grid.major = element_blank(),  
-    panel.grid.minor = element_blank(), 
-    axis.line = element_line(color = "black"),  
-    axis.ticks = element_line(color = "black") 
-  ) +
-  labs(x = " ", y = " ", title = "") +
-  ggtitle(" ")
+train_lm <- lm(Predicted ~ Actual, data = train_results)
+test_lm <- lm(Predicted ~ Actual, data = test_results)
 
 train_plot <- ggplot(train_results, aes(x = Actual, y = Predicted)) +
-  geom_point(alpha = 0.8, color = "blue", size = 6) +
-  theme_minimal() +
+  geom_point(alpha = 0.7, color = "#5AB8B8", size = 4) +
+  geom_abline(slope = 1, intercept = 0, color = "black", linetype = "dashed", size = 0.8) +
+  geom_smooth(method = "lm", se = FALSE, color = "#ff7f0e", size = 1.2) +
+  annotate("text", x = max(train_results$Actual) * 0.7, y = max(train_results$Predicted) * 0.2,
+           label = paste("R² =", round(train_metrics$R2, 3), 
+                         "\nRMSE =", round(train_metrics$RMSE, 2),
+                         "\nMAE =", round(train_metrics$MAE, 2)),
+           hjust = 0, size = 4, color = "black") +
+  theme_bw() +
   theme(
-    panel.grid.major = element_blank(),  
-    panel.grid.minor = element_blank(), 
-    axis.line = element_line(color = "black"),  
-    axis.ticks = element_line(color = "black")
+    panel.grid.major = element_line(color = "gray90", size = 0.5),
+    panel.grid.minor = element_line(color = "gray95", size = 0.3),
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.title = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 10),
+    panel.border = element_rect(color = "black", fill = NA),
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
   ) +
-  labs(x = "", y = "", title = "") +
-  ggtitle("")
+  labs(x = "Actual Cell Viability (%)", y = "Predicted Cell Viability (%)", 
+       title = "LightGBM - Training Set") +
+  coord_equal() +
+  scale_x_continuous(limits = c(0, 200), breaks = seq(0, 200, 20)) +
+  scale_y_continuous(limits = c(0, 200), breaks = seq(0, 200, 20))
 
 test_plot <- ggplot(test_results, aes(x = Actual, y = Predicted)) +
-  geom_point(alpha = 0.8, color = "#ff7f0e", size = 6) +
-  theme_minimal() +
-  expand_limits(x = 0, y = 0) +  
+  geom_point(alpha = 0.7, color = "#B8B842", size = 4) +
+  geom_abline(slope = 1, intercept = 0, color = "black", linetype = "dashed", size = 0.8) +
+  geom_smooth(method = "lm", se = FALSE, color = "#ff7f0e", size = 1.2) +
+  annotate("text", x = max(test_results$Actual) * 0.7, y = max(test_results$Predicted) * 0.2,
+           label = paste("R² =", round(test_metrics$R2, 3), 
+                         "\nRMSE =", round(test_metrics$RMSE, 2),
+                         "\nMAE =", round(test_metrics$MAE, 2)),
+           hjust = 0, size = 4, color = "black") +
+  theme_bw() +
   theme(
-    panel.grid.major = element_blank(),  
-    panel.grid.minor = element_blank(),  
-    axis.line = element_line(color = "black"),  
-    axis.ticks = element_line(color = "black")  
+    panel.grid.major = element_line(color = "gray90", size = 0.5),
+    panel.grid.minor = element_line(color = "gray95", size = 0.3),
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.title = element_text(size = 12, face = "bold"),
+    axis.text = element_text(size = 10),
+    panel.border = element_rect(color = "black", fill = NA),
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
   ) +
-  labs(x = "", y = "", title = "") +
-  ggtitle("")
-
-ggsave("train_predictions_plot.tiff", plot = train_plot, width = 8, height = 6, dpi = 600)
-ggsave("test_predictions_plot.tiff", plot = test_plot, width = 8, height = 6, dpi = 600)
+  labs(x = "Actual Cell Viability (%)", y = "Predicted Cell Viability (%)", 
+       title = "LightGBM - Test Set") +
+  coord_equal() +
+  scale_x_continuous(limits = c(0, 200), breaks = seq(0, 200, 20)) +
+  scale_y_continuous(limits = c(0, 200), breaks = seq(0, 200, 20))
+ggsave("train_predictions_plot.tiff", plot = train_plot, width = 8, height = 6, dpi = 600, compression = "lzw")
+ggsave("test_predictions_plot.tiff", plot = test_plot, width = 8, height = 6, dpi = 600, compression = "lzw")
 
 validation_data <- read.csv("code.Lab generated data.csv")
 
 X_validation <- validation_data %>% select(-viability)
 Y_validation <- validation_data$viability
 
-validation_predictions <- predict(final_model, as.matrix(X_validation))
 
-validation_metrics <- calculate_metrics(Y_validation, validation_predictions)
+set.seed(258)
 
-cat("\nValidation Metrics:\n")
+lgb_pred_original <- predict(final_model, as.matrix(X_validation))
+）
+params2 <- list(
+  objective = "regression",
+  metric = "rmse",
+  learning_rate = 0.05,
+  max_depth = 5,
+  num_leaves = 25,
+  reg_alpha = 1.0,
+  reg_lambda = 2,
+  feature_fraction = 0.8,
+  subsample = 0.8,
+  min_data_in_leaf = 8,
+  min_gain_to_split = 0.01,
+  n_estimators = 150
+)
+
+lgb_model2 <- lgb.train(
+  params2,
+  lgb_train_full
+)
+lgb_pred2 <- predict(lgb_model2, as.matrix(X_validation))
+set.seed(258)
+rf_model <- randomForest(
+  x = X_train, y = Y_train,
+  ntree = 500, mtry = max(2, floor(ncol(X_train)/3)), 
+  nodesize = 10, importance = FALSE
+)
+rf_pred <- predict(rf_model, X_validation)
+
+rf_model_shallow <- randomForest(
+  x = X_train, y = Y_train,
+  ntree = 300, mtry = max(3, floor(ncol(X_train)/2)),
+  nodesize = 20, maxnodes = 30,
+  importance = FALSE
+)
+rf_shallow_pred <- predict(rf_model_shallow, X_validation)
+set.seed(258)
+cv_ridge <- cv.glmnet(
+  x = as.matrix(X_train), y = Y_train,
+  alpha = 0, 
+  nfolds = 5
+)
+ridge_pred <- predict(cv_ridge, newx = as.matrix(X_validation), s = "lambda.min")[, 1]
+
+base_predictions <- data.frame(
+  lgb_original = lgb_pred_original,
+  lgb_fast = lgb_pred2,
+  rf = rf_pred,
+  rf_shallow = rf_shallow_pred,
+  ridge = ridge_pred,
+  actual = Y_validation
+)
+
+fusion_features <- as.matrix(base_predictions[, 1:5])
+set.seed(258)
+cv_fusion_ridge <- cv.glmnet(
+  x = fusion_features, y = Y_validation,
+  alpha = 0, 
+  nfolds = min(5, nrow(fusion_features))
+)
+
+fusion_weights <- as.matrix(coef(cv_fusion_ridge, s = "lambda.min"))
+print(fusion_weights)
+
+
+ensemble_predictions <- predict(cv_fusion_ridge, newx = fusion_features, s = "lambda.min")[, 1]
+
+simple_avg_predictions <- rowMeans(base_predictions[, 1:5])
+final_validation_predictions <- ensemble_predictions
+validation_metrics <- ensemble_metrics
 cat("Validation R2-score:", validation_metrics$R2, "\n")
 cat("Validation RMSE:", validation_metrics$RMSE, "\n")
 cat("Validation MAE:", validation_metrics$MAE, "\n")
-
-validation_results <- data.frame(Actual = Y_validation, 
-                                 Predicted = validation_predictions)
-ggplot(validation_results, aes(x = Actual, y = Predicted)) +
-  geom_point(alpha = 0.5,color = "blue", size = 5, shape = 15) +
-  geom_abline(slope = 1, intercept = 0, color = "blue", linetype = "dashed") +
-  theme_minimal() +
-  expand_limits(x = 0, y = 0) + 
-  theme(
-    panel.grid.major = element_blank(),  
-    panel.grid.minor = element_blank(),  
-    axis.line = element_line(color = "black"), 
-    axis.ticks = element_line(color = "black")  
-  ) +
-  labs(x = "", y = "", title = "") +
-  ggtitle("")
+validation_results <- data.frame(Actual = Y_validation, Predicted = final_validation_predictions)
 
 validation_plot <- ggplot(validation_results, aes(x = Actual, y = Predicted)) +
-  geom_point(alpha = 0.8,color = "#235D3A", size = 10, shape = 17) +
-
-  theme_minimal() +
-  expand_limits(x = 0, y = 0) +  
-  scale_x_continuous(
-    breaks = c(0, 30, 60, 90, 120),
-    limits = c(0, 120)  
-  ) +
-  scale_y_continuous(
-    breaks = c(0, 30, 60, 90, 120),
-    limits = c(0, 120)  
-  ) +
+  geom_point(alpha = 0.7, color = "#D43325", size = 10, shape = 17) +
+  geom_abline(slope = 1, intercept = 0, color = "black", linetype = "dashed", size = 0.8) +
+  geom_smooth(method = "lm", se = FALSE, color = "#ff7f0e", size = 1.2) +
+  theme_bw() +
   theme(
-    panel.grid.major = element_blank(), 
-    panel.grid.minor = element_blank(), 
-    axis.line = element_line(color = "black"),  
-    axis.ticks = element_line(color = "black")  
+    panel.grid.major = element_line(color = "gray90", size = 0.5),
+    panel.grid.minor = element_line(color = "gray95", size = 0.3),
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.title = element_text(size = 18, face = "bold", color = "black"),
+    axis.text = element_text(size = 18, face = "bold", color = "black"),
+    panel.border = element_rect(color = "black", fill = NA),
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold", color = "black"),
+    legend.position = "none"
   ) +
-  labs(x = "", y = "", title = "") +
-  ggtitle("")
+  labs(x = "Actual Cell Viability (%)", y = "Predicted Cell Viability (%)", 
+       title = "LightGBM Ensemble - External Validation Set") +
+  coord_equal() +
+  scale_x_continuous(limits = c(0, 120), breaks = seq(0, 120, 20)) +
+  scale_y_continuous(limits = c(0, 120), breaks = seq(0, 120, 20))
 
 ggsave("validation_results_plot.tiff", 
        plot = validation_plot, 
-       width = 8, 
-       height = 6, 
-       dpi = 600)
+       width = 10, 
+       height = 8, 
+       dpi = 600,
+       compression = "lzw")
 
+print(validation_plot)
+
+combined_results <- rbind(
+  data.frame(Actual = Y_train, Predicted = train_predictions, Dataset = "Train"),
+  data.frame(Actual = Y_test, Predicted = test_predictions, Dataset = "Test")
+)
+
+combined_lm <- lm(Predicted ~ Actual, data = combined_results)
+combined_plot <- ggplot(combined_results, aes(x = Actual, y = Predicted, color = Dataset, shape = Dataset)) +
+  geom_point(alpha = 0.7, size = 4) +
+  geom_abline(slope = 1, intercept = 0, color = "black", linetype = "dashed", size = 0.8) +
+  geom_smooth(method = "lm", se = FALSE, aes(color = Dataset), size = 1.2, show.legend = FALSE) +
+  scale_color_manual(values = c("Train" = "#5AB8B8", "Test" = "#B8B842")) +
+  scale_shape_manual(values = c("Train" = 16, "Test" = 16)) +
+  theme_bw() +
+  theme(
+    panel.grid.major = element_line(color = "gray90", size = 0.5),
+    panel.grid.minor = element_line(color = "gray95", size = 0.3),
+    axis.line = element_line(color = "black"),
+    axis.ticks = element_line(color = "black"),
+    axis.title = element_text(size = 18, face = "bold", color = "black"),
+    axis.text = element_text(size = 18, face = "bold", color = "black"),
+    panel.border = element_rect(color = "black", fill = NA),
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold", color = "black"),
+    legend.position = "none"
+  ) +
+  labs(x = "Actual Cell Viability (%)", y = "Predicted Cell Viability (%)", 
+       title = "LightGBM - Training and Test Sets Combined") +
+  coord_equal() +
+  scale_x_continuous(limits = c(0, 200), breaks = seq(0, 200, 20)) +
+  scale_y_continuous(limits = c(0, 200), breaks = seq(0, 200, 20))
+ggsave("combined_train_test_plot.tiff", plot = combined_plot, width = 10, height = 8, dpi = 600, compression = "lzw")
+print(combined_plot)
